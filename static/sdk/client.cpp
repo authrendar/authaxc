@@ -12,8 +12,8 @@
 
 // API Host and Port Configuration
 // In production: Change HOST to your Render domain (e.g. "your-app.onrender.com") and PORT to 443
-const std::string API_HOST = "localhost";
-const int API_PORT = 8000;
+const std::string API_HOST = "auth.anikxcheatx.com";
+const int API_PORT = 80;
 const std::string APP_ID = "YOUR_APP_ID"; // Replace with App ID from dashboard
 
 // Helper function to hash text using SHA-256 via Windows Cryptography API (CNG)
@@ -69,7 +69,7 @@ std::string GetHWID() {
 
 // Send HTTP POST request to API using WinINet API
 std::string SendPostRequest(const std::string& path, const std::string& jsonPayload) {
-    HINTERNET hSession = InternetOpenA("AegisClient", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    HINTERNET hSession = InternetOpenA("AnikX", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
     if (!hSession) return "{\"detail\":\"Failed to open internet session.\"}";
 
     HINTERNET hConnect = InternetConnectA(hSession, API_HOST.c_str(), API_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
@@ -202,7 +202,7 @@ bool LoginByLicense() {
 }
 
 int main() {
-    std::cout << "=== AEGIS AUTHENTICATION CLIENT (C++) ===\n";
+    std::cout << "=== Anik X Cheats AUTHENTICATION CLIENT (C++) ===\n";
     std::cout << "[DEBUG] HWID: " << GetHWID() << "\n\n";
 
     if (APP_ID == "YOUR_APP_ID") {

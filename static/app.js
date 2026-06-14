@@ -888,6 +888,7 @@ createUserForm.addEventListener('submit', async (e) => {
     const note = userNote ? userNote.value.trim() : '';
     
     try {
+        const subscriptionId = document.getElementById('user-subscription-id')?.value || null;
         const response = await fetch('/api/admin/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -896,6 +897,7 @@ createUserForm.addEventListener('submit', async (e) => {
                 username,
                 password,
                 duration_days: duration,
+                subscription_id: subscriptionId,
                 note
             })
         });
@@ -930,6 +932,14 @@ navItems.forEach(item => {
             fetchUsers();
         } else if (tabId === 'logs') {
             fetchLogs();
+        } else if (tabId === 'subscriptions') {
+            fetchSubscriptions();
+        } else if (tabId === 'tokens') {
+            fetchTokens();
+        } else if (tabId === 'webhooks') {
+            fetchWebhooks();
+        } else if (tabId === 'variables') {
+            fetchVariables();
         }
     });
 });
@@ -946,11 +956,13 @@ generateForm.addEventListener('submit', async (e) => {
     const count = parseInt(countInput.value);
     const note = noteInput ? noteInput.value.trim() : '';
     
+    const subscriptionId = document.getElementById('license-subscription-id')?.value || null;
+    
     try {
         const response = await fetch('/api/admin/licenses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ app_id: activeAppId, duration_days: duration, count, note })
+            body: JSON.stringify({ app_id: activeAppId, duration_days: duration, count, subscription_id: subscriptionId, note })
         });
         
         const data = await response.json();

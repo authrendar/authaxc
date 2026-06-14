@@ -5,19 +5,19 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using Microsoft.Win32;
 
-namespace AegisClient
+namespace AnikXClient
 {
     class Program
     {
         // FastAPI Server base URL (Change this to your Render URL in production)
-        private static readonly string BaseUrl = "http://localhost:8000";
+        private static readonly string BaseUrl = "http://auth.anikxcheatx.com";
         private static readonly string AppId = "YOUR_APP_ID"; // Replace with App ID from dashboard
         private static readonly HttpClient Client = new HttpClient();
 
         static async Task Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            Console.WriteLine("=== AEGIS AUTHENTICATION CLIENT (C#) ===");
+            Console.WriteLine("=== Anik X Cheats AUTHENTICATION CLIENT (C#) ===");
             Console.WriteLine($"[DEBUG] Local HWID: {GetHWID()}\n");
 
             if (AppId == "YOUR_APP_ID")

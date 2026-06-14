@@ -4,8 +4,8 @@ import uuid
 import platform
 import requests
 
-# FastAPI Server base URL (Change this to your Render URL in production)
-BASE_URL = "http://localhost:8000"
+# Anik X Cheats Server Configuration (Change this to your Render URL in production)
+BASE_URL = "http://auth.anikxcheatx.com"
 APP_ID = "YOUR_APP_ID"  # Replace with the App ID generated from the dashboard
 
 def get_hwid():
@@ -90,7 +90,7 @@ def login_by_license(license_key):
         return False
 
 if __name__ == "__main__":
-    print("=== AEGIS AUTHENTICATION CLIENT (PYTHON) ===")
+    print("=== Anik X Cheats AUTHENTICATION CLIENT (PYTHON) ===")
     print(f"[DEBUG] Local HWID: {get_hwid()}\n")
     
     if APP_ID == "YOUR_APP_ID":

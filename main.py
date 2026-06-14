@@ -22,7 +22,7 @@ import models
 load_dotenv()
 
 # Initialize FastAPI
-app = FastAPI(title="Aegis Licensing System")
+app = FastAPI(title="Anik X Cheats Licensing System")
 
 # Enable CORS
 app.add_middleware(
@@ -187,7 +187,7 @@ def setup_2fa(username: str = Depends(get_current_admin)):
     db.users_collection.update_one({"username": username}, {"$set": {"totp_secret": secret}})
     
     totp = pyotp.TOTP(secret)
-    provisioning_uri = totp.provisioning_uri(name=username, issuer_name="Aegis Auth")
+    provisioning_uri = totp.provisioning_uri(name=username, issuer_name="Anik X Cheats")
     
     return {"status": "success", "secret": secret, "uri": provisioning_uri}
 
