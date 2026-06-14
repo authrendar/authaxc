@@ -18,7 +18,7 @@
     <div id="login-view" class="login-container hidden">
         <div class="login-box">
             <div class="login-brand">
-                KeyAuth
+                Anik X Cheats
             </div>
             
             <form id="login-form">
@@ -54,7 +54,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-brand">
-                KeyAuth
+                Anik X Cheats
             </div>
 
             <!-- App Selector -->
@@ -74,28 +74,28 @@
                 <a href="#" class="nav-item" data-tab="users">
                     <i class="fa-solid fa-user-group"></i> Users
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-ticket"></i> Tokens
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-box-open"></i> Subscriptions
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-regular fa-comments"></i> Chats
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-desktop"></i> Sessions
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-link"></i> Webhooks
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-upload"></i> Files
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-sliders"></i> Variables
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-scale-balanced"></i> Rules
                 </a>
                 <a href="#" class="nav-item" data-tab="logs">
@@ -107,7 +107,7 @@
                 <a href="#" class="nav-item" data-tab="web-admins">
                     <i class="fa-solid fa-user-shield"></i> Web Admins
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-book"></i> Resources
                 </a>
             </nav>
@@ -127,7 +127,7 @@
                     <div class="profile-avatar">S</div>
                     <div class="profile-info">
                         <span class="profile-name" id="admin-display-name">Admin</span>
-                        <span class="profile-role">Tester Subscription</span>
+                        <span class="profile-role">Admin</span>
                     </div>
                     <i class="fa-solid fa-chevron-down" style="font-size:0.7rem; color:var(--text-muted);"></i>
                 </div>
@@ -140,7 +140,7 @@
                 <section id="tab-overview" class="tab-content active-content">
                     
                     <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Current Application: <span class="active-app-name-display" style="color:var(--text-muted);">---</span> <span style="color:var(--color-red); margin-left: 8px;">You don't have a subscription! <a href="#" style="color:var(--color-blue);">Upgrade Now.</a></span>
+                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Current Application: <span class="active-app-name-display" style="color:var(--text-muted);">---</span> <span style="color:var(--color-green); margin-left: 8px;">Active</span>
                     </div>
 
                     <div class="page-header">
@@ -395,6 +395,42 @@
                                 <div id="no-admins-msg" class="empty-state hidden">
                                     <p>No other admins found.</p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Tab content: Web Admins -->
+                <section id="tab-web-admins" class="tab-content hidden">
+                    <div class="breadcrumb">
+                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Web Admins
+                    </div>
+                    
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Platform Administrators</h1>
+                            <p>Manage who has access to the Aegis dashboard.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>USERNAME</th>
+                                        <th>CREATED ON</th>
+                                        <th>ROLE</th>
+                                        <th style="text-align:center;">ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admins-table-body">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                            <div id="no-admins-msg" class="empty-state hidden">
+                                <i class="fa-solid fa-users" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 10px;"></i>
+                                <p>No platform administrators found.</p>
                             </div>
                         </div>
                     </div>
