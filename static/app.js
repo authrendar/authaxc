@@ -556,9 +556,10 @@ function renderLogsTable() {
     logsTableBody.innerHTML = '';
     
     if (logsList.length === 0) {
-        noLogsMsg.classList.remove('hidden');
+        if (noLogsMsg) noLogsMsg.classList.remove('hidden');
+        else logsTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 20px; color: var(--text-muted);">No event logs recorded.</td></tr>';
     } else {
-        noLogsMsg.classList.add('hidden');
+        if (noLogsMsg) noLogsMsg.classList.add('hidden');
         
         logsList.forEach(log => {
             const tr = document.createElement('tr');
@@ -1650,10 +1651,9 @@ if(addResourceForm) {
 
 // RULES
 window.fetchRules = async function() {
-    if(!activeApp) return;
+    if(!activeAppId) return;
     try {
-        // App object might already have rules from fetchApps(), but let's just grab from activeApp object
-        // Wait, activeApp object is just from the appsList which has `rules` if returned by API.
+        const activeApp = appsList.find(a => a.id === activeAppId) || {};
         const rules = activeApp.rules || { hwid_lock: true, block_vpn: false, block_dev_mode: false };
         document.getElementById('rule-hwid-lock').checked = rules.hwid_lock !== false;
         document.getElementById('rule-block-vpn').checked = rules.block_vpn === true;
