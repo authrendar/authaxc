@@ -10,7 +10,7 @@ import requests
 from datetime import datetime, timedelta
 from typing import List
 
-from fastapi import FastAPI, Request, Response, HTTPException, Depends
+from fastapi import FastAPI, Request, Response, HTTPException, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -526,11 +526,16 @@ def client_login(data: models.ClientLogin):
         if datetime.utcnow() > exp_time:
             raise HTTPException(status_code=403, detail="Your license has expired")
             
-    if not user.get("hwid"):
-        db.users_collection.update_one({"username": data.username, "app_id": data.app_id}, {"$set": {"hwid": data.hwid}})
-        db.licenses_collection.update_one({"key": user["license_key"]}, {"$set": {"hwid": data.hwid}})
-    elif user["hwid"] != data.hwid:
-        raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
+    rules = app.get("rules", {})
+    if rules.get("block_dev_mode", False):
+        pass # Placeholder for client dev mode check
+        
+    if rules.get("hwid_lock", True):
+        if not user.get("hwid"):
+            db.users_collection.update_one({"username": data.username, "app_id": data.app_id}, {"$set": {"hwid": data.hwid}})
+            db.licenses_collection.update_one({"key": user["license_key"]}, {"$set": {"hwid": data.hwid}})
+        elif user["hwid"] != data.hwid:
+            raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
         
     # Determine Subscription Level
     sub_level = 1
@@ -542,6 +547,15 @@ def client_login(data: models.ClientLogin):
         sub_doc = db.subscriptions_collection.find_one({"id": lic["subscription_id"], "app_id": data.app_id})
         if sub_doc:
             sub_level = sub_doc["level"]
+
+    session_id = uuid.uuid4().hex
+    db.sessions_collection.insert_one({
+        "session_id": session_id,
+        "app_id": data.app_id,
+        "username": data.username,
+        "hwid": data.hwid,
+        "login_time": datetime.utcnow().isoformat()
+    })
 
     log_event(data.app_id, "Login", f"User '{data.username}' logged in successfully from HWID '{data.hwid}'")
     return {
@@ -589,10 +603,12 @@ def client_license_login(data: models.ClientLicenseLogin):
             if datetime.utcnow() > exp_time:
                 raise HTTPException(status_code=403, detail="Your license has expired")
                 
-        if not lic.get("hwid"):
-            db.licenses_collection.update_one({"key": data.license_key}, {"$set": {"hwid": data.hwid}})
-        elif lic["hwid"] != data.hwid:
-            raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
+        rules = app.get("rules", {})
+        if rules.get("hwid_lock", True):
+            if not lic.get("hwid"):
+                db.licenses_collection.update_one({"key": data.license_key}, {"$set": {"hwid": data.hwid}})
+            elif lic["hwid"] != data.hwid:
+                raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
             
     # Determine Subscription Level
     sub_level = 1
@@ -601,7 +617,16 @@ def client_license_login(data: models.ClientLicenseLogin):
         if sub_doc:
             sub_level = sub_doc["level"]
 
-    log_event(data.app_id, "License Login", f"License key '{data.license_key}' logged in successfully from HWID '{data.hwid}'")
+    session_id = uuid.uuid4().hex
+    db.sessions_collection.insert_one({
+        "session_id": session_id,
+        "app_id": data.app_id,
+        "username": "LicenseOnly",
+        "hwid": data.hwid,
+        "login_time": datetime.utcnow().isoformat()
+    })
+
+    log_event(data.app_id, "License Login", f"License '{data.license_key}' logged in successfully from HWID '{data.hwid}'")
     return {
         "status": "success",
         "message": "License login successful",
@@ -769,6 +794,136 @@ def client_redeem_token(data: models.ClientRedeemRequest):
     
     log_event(data.app_id, "Token Redeem", f"User '{data.username}' redeemed token '{data.token}'")
     return {"status": "success", "message": "Token redeemed successfully", "new_expires_at": new_expiry}
+
+# ==========================================
+# PHASE 3: SESSIONS, FILES, CHATS, RULES, RESOURCES
+# ==========================================
+import shutil
+
+@app.get("/api/admin/sessions")
+def get_sessions(app_id: str, username: str = Depends(get_current_admin)):
+    sessions = list(db.sessions_collection.find({"app_id": app_id}, {"_id": 0}))
+    return sessions
+
+@app.delete("/api/admin/sessions/{session_id}")
+def delete_session(session_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    db.sessions_collection.delete_one({"app_id": app_id, "session_id": session_id})
+    return {"status": "success"}
+
+@app.post("/api/admin/files")
+def upload_file(app_id: str = Form(...), file: UploadFile = File(...), username: str = Depends(get_current_admin)):
+    file_id = uuid.uuid4().hex
+    os.makedirs("uploads", exist_ok=True)
+    file_path = os.path.join("uploads", f"{file_id}_{file.filename}")
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    db.files_collection.insert_one({
+        "id": file_id,
+        "app_id": app_id,
+        "filename": file.filename,
+        "size": os.path.getsize(file_path),
+        "uploaded_at": datetime.utcnow().isoformat()
+    })
+    return {"status": "success"}
+
+@app.get("/api/admin/files")
+def get_files(app_id: str, username: str = Depends(get_current_admin)):
+    files = list(db.files_collection.find({"app_id": app_id}, {"_id": 0}))
+    return files
+
+@app.delete("/api/admin/files/{file_id}")
+def delete_file(file_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    file_doc = db.files_collection.find_one({"id": file_id, "app_id": app_id})
+    if file_doc:
+        file_path = os.path.join("uploads", f"{file_id}_{file_doc['filename']}")
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        db.files_collection.delete_one({"id": file_id})
+    return {"status": "success"}
+
+@app.post("/api/client/files/{file_id}")
+def client_download_file(file_id: str, data: models.ClientLogin):
+    user = db.users_collection.find_one({"username": data.username, "app_id": data.app_id})
+    if not user or not db.verify_password(data.password, user["password"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    if user["hwid"] and user["hwid"] != data.hwid:
+        raise HTTPException(status_code=403, detail="HWID mismatch")
+        
+    file_doc = db.files_collection.find_one({"id": file_id, "app_id": data.app_id})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    file_path = os.path.join("uploads", f"{file_id}_{file_doc['filename']}")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File missing on server")
+        
+    return FileResponse(file_path, filename=file_doc['filename'])
+
+@app.get("/api/admin/chats")
+def admin_get_chats(app_id: str, username: str = Depends(get_current_admin)):
+    chats = list(db.chats_collection.find({"app_id": app_id}, {"_id": 0}).sort("timestamp", -1).limit(100))
+    return chats
+
+@app.delete("/api/admin/chats/{message_id}")
+def admin_delete_chat(message_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    db.chats_collection.delete_one({"id": message_id, "app_id": app_id})
+    return {"status": "success"}
+
+@app.post("/api/client/chat")
+def client_send_chat(data: models.ClientChatRequest):
+    user = db.users_collection.find_one({"username": data.username, "app_id": data.app_id})
+    if not user or not db.verify_password(data.password, user["password"]) or user["hwid"] != data.hwid:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    msg_id = uuid.uuid4().hex
+    db.chats_collection.insert_one({
+        "id": msg_id, "app_id": data.app_id, "username": data.username,
+        "message": data.message, "timestamp": datetime.utcnow().isoformat()
+    })
+    return {"status": "success"}
+
+@app.post("/api/client/chat/fetch")
+def client_get_chats(data: models.ClientChatRequest):
+    user = db.users_collection.find_one({"username": data.username, "app_id": data.app_id})
+    if not user or not db.verify_password(data.password, user["password"]) or user["hwid"] != data.hwid:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    chats = list(db.chats_collection.find({"app_id": data.app_id}, {"_id": 0}).sort("timestamp", 1).limit(50))
+    return {"status": "success", "messages": chats}
+
+@app.put("/api/admin/apps/{app_id}/rules")
+def update_app_rules(app_id: str, rules: models.AppRulesUpdate, username: str = Depends(get_current_admin)):
+    db.apps_collection.update_one({"id": app_id}, {"$set": {"rules": rules.dict()}})
+    return {"status": "success"}
+
+@app.post("/api/admin/resources")
+def create_resource(data: models.ResourceCreate, username: str = Depends(get_current_admin)):
+    res_id = uuid.uuid4().hex
+    db.resources_collection.insert_one({
+        "id": res_id, "app_id": data.app_id, "title": data.title,
+        "content": data.content, "created_at": datetime.utcnow().isoformat()
+    })
+    return {"status": "success"}
+
+@app.get("/api/admin/resources")
+def get_resources(app_id: str, username: str = Depends(get_current_admin)):
+    resources = list(db.resources_collection.find({"app_id": app_id}, {"_id": 0}))
+    return resources
+
+@app.delete("/api/admin/resources/{res_id}")
+def delete_resource(res_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    db.resources_collection.delete_one({"id": res_id, "app_id": app_id})
+    return {"status": "success"}
+
+@app.post("/api/client/resources")
+def client_get_resources(data: models.ClientLogin):
+    user = db.users_collection.find_one({"username": data.username, "app_id": data.app_id})
+    if not user or not db.verify_password(data.password, user["password"]) or user["hwid"] != data.hwid:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    resources = list(db.resources_collection.find({"app_id": data.app_id}, {"_id": 0}))
+    return {"status": "success", "resources": resources}
 
 # --- PAGE ROUTING ---
 @app.get("/")

@@ -359,6 +359,16 @@ function updateActiveAppDisplay() {
         populateSubscriptionSelects();
     } else if (activeTab === 'settings') {
         fetch2FAStatus();
+    } else if (activeTab === 'sessions') {
+        fetchSessions();
+    } else if (activeTab === 'files') {
+        fetchFiles();
+    } else if (activeTab === 'chats') {
+        fetchChats();
+    } else if (activeTab === 'rules') {
+        fetchRules();
+    } else if (activeTab === 'resources') {
+        fetchResources();
     }
 }
 
@@ -940,6 +950,16 @@ navItems.forEach(item => {
             fetchWebhooks();
         } else if (tabId === 'variables') {
             fetchVariables();
+        } else if (tabId === 'sessions') {
+            fetchSessions();
+        } else if (tabId === 'files') {
+            fetchFiles();
+        } else if (tabId === 'chats') {
+            fetchChats();
+        } else if (tabId === 'rules') {
+            fetchRules();
+        } else if (tabId === 'resources') {
+            fetchResources();
         }
     });
 });
@@ -1426,3 +1446,237 @@ window.deleteWebhook = async function(name) {
         }
     }
 };
+
+// ==========================================
+// PHASE 3 FEATURES
+// ==========================================
+
+// SESSIONS
+window.fetchSessions = async function() {
+    if(!activeAppId) return;
+    try {
+        const res = await fetch(`/api/admin/sessions?app_id=${activeAppId}`);
+        const sessions = await res.json();
+        const tbody = document.getElementById('sessions-table-body');
+        tbody.innerHTML = '';
+        if(sessions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No active sessions</td></tr>';
+        } else {
+            sessions.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-family: monospace; font-size:0.8rem;">${s.session_id.substring(0, 10)}...</td>
+                    <td><strong>${s.username}</strong></td>
+                    <td style="font-family: monospace; font-size:0.8rem;">${s.hwid}</td>
+                    <td>${new Date(s.login_time || s.login_at).toLocaleString()}</td>
+                    <td>
+                        <div class="action-buttons" style="justify-content:center;">
+                            <button onclick="deleteSession('${s.session_id}')" class="btn-action ban-btn" title="Kill Session"><i class="fa-solid fa-power-off"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch(e) { console.error(e); }
+}
+
+window.deleteSession = async function(sessionId) {
+    if(confirm('Kill this session?')) {
+        await fetch(`/api/admin/sessions/${sessionId}?app_id=${activeAppId}`, {method: 'DELETE'});
+        showToast('Session killed');
+        fetchSessions();
+    }
+};
+
+// FILES
+window.fetchFiles = async function() {
+    if(!activeAppId) return;
+    try {
+        const res = await fetch(`/api/admin/files?app_id=${activeAppId}`);
+        const files = await res.json();
+        const tbody = document.getElementById('files-table-body');
+        tbody.innerHTML = '';
+        if(files.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No files uploaded</td></tr>';
+        } else {
+            files.forEach(f => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${f.filename}</strong></td>
+                    <td>${(f.size/1024).toFixed(2)} KB</td>
+                    <td>${new Date(f.uploaded_at).toLocaleString()}</td>
+                    <td>
+                        <div class="action-buttons" style="justify-content:center;">
+                            <button onclick="deleteFile('${f.id}')" class="btn-action ban-btn"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch(e) {}
+}
+
+window.deleteFile = async function(fileId) {
+    if(confirm('Delete file?')) {
+        await fetch(`/api/admin/files/${fileId}?app_id=${activeAppId}`, {method: 'DELETE'});
+        showToast('File deleted');
+        fetchFiles();
+    }
+};
+
+const btnUploadFileModal = document.getElementById('btn-upload-file-modal');
+const uploadFileModal = document.getElementById('upload-file-modal');
+const uploadFileForm = document.getElementById('upload-file-form');
+if(btnUploadFileModal) btnUploadFileModal.onclick = () => { if(activeAppId) uploadFileModal.classList.remove('hidden'); else showToast('Select an app', true); };
+if(document.getElementById('btn-close-file-modal')) document.getElementById('btn-close-file-modal').onclick = () => uploadFileModal.classList.add('hidden');
+
+if(uploadFileForm) {
+    uploadFileForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById('file-input');
+        if(!fileInput.files[0]) return;
+        const formData = new FormData();
+        formData.append('app_id', activeAppId);
+        formData.append('file', fileInput.files[0]);
+        
+        try {
+            const res = await fetch('/api/admin/files', { method: 'POST', body: formData });
+            if(res.ok) { showToast('File uploaded'); uploadFileModal.classList.add('hidden'); uploadFileForm.reset(); fetchFiles(); }
+            else showToast('Upload failed', true);
+        } catch(e) { showToast('Error', true); }
+    };
+}
+
+// CHATS
+window.fetchChats = async function() {
+    if(!activeAppId) return;
+    try {
+        const res = await fetch(`/api/admin/chats?app_id=${activeAppId}`);
+        const chats = await res.json();
+        const tbody = document.getElementById('chats-table-body');
+        tbody.innerHTML = '';
+        if(chats.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No messages</td></tr>';
+        } else {
+            chats.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${c.username}</strong></td>
+                    <td>${c.message}</td>
+                    <td>${new Date(c.timestamp).toLocaleString()}</td>
+                    <td>
+                        <div class="action-buttons" style="justify-content:center;">
+                            <button onclick="deleteChat('${c.id}')" class="btn-action ban-btn"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch(e) {}
+}
+
+window.deleteChat = async function(msgId) {
+    if(confirm('Delete message?')) {
+        await fetch(`/api/admin/chats/${msgId}?app_id=${activeAppId}`, {method: 'DELETE'});
+        fetchChats();
+    }
+};
+
+// RESOURCES
+window.fetchResources = async function() {
+    if(!activeAppId) return;
+    try {
+        const res = await fetch(`/api/admin/resources?app_id=${activeAppId}`);
+        const resources = await res.json();
+        const tbody = document.getElementById('resources-table-body');
+        tbody.innerHTML = '';
+        if(resources.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:20px;">No resources found</td></tr>';
+        } else {
+            resources.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${r.title}</strong></td>
+                    <td style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.content}</td>
+                    <td>
+                        <div class="action-buttons" style="justify-content:center;">
+                            <button onclick="deleteResource('${r.id}')" class="btn-action ban-btn"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch(e) {}
+}
+
+window.deleteResource = async function(resId) {
+    if(confirm('Delete resource?')) {
+        await fetch(`/api/admin/resources/${resId}?app_id=${activeAppId}`, {method: 'DELETE'});
+        showToast('Resource deleted');
+        fetchResources();
+    }
+};
+
+const btnAddResourceModal = document.getElementById('btn-add-resource-modal');
+const addResourceModal = document.getElementById('add-resource-modal');
+const addResourceForm = document.getElementById('add-resource-form');
+if(btnAddResourceModal) btnAddResourceModal.onclick = () => { if(activeAppId) addResourceModal.classList.remove('hidden'); else showToast('Select an app', true); };
+if(document.getElementById('btn-close-resource-modal')) document.getElementById('btn-close-resource-modal').onclick = () => addResourceModal.classList.add('hidden');
+
+if(addResourceForm) {
+    addResourceForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('resource-title').value;
+        const content = document.getElementById('resource-content').value;
+        
+        try {
+            const res = await fetch('/api/admin/resources', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({app_id: activeAppId, title, content}) 
+            });
+            if(res.ok) { showToast('Resource saved'); addResourceModal.classList.add('hidden'); addResourceForm.reset(); fetchResources(); }
+            else showToast('Failed', true);
+        } catch(e) { showToast('Error', true); }
+    };
+}
+
+// RULES
+window.fetchRules = async function() {
+    if(!activeApp) return;
+    try {
+        // App object might already have rules from fetchApps(), but let's just grab from activeApp object
+        // Wait, activeApp object is just from the appsList which has `rules` if returned by API.
+        const rules = activeApp.rules || { hwid_lock: true, block_vpn: false, block_dev_mode: false };
+        document.getElementById('rule-hwid-lock').checked = rules.hwid_lock !== false;
+        document.getElementById('rule-block-vpn').checked = rules.block_vpn === true;
+        document.getElementById('rule-block-dev').checked = rules.block_dev_mode === true;
+    } catch(e) {}
+}
+
+const rulesForm = document.getElementById('rules-form');
+if(rulesForm) {
+    rulesForm.onsubmit = async (e) => {
+        e.preventDefault();
+        if(!activeAppId) return;
+        const hwid_lock = document.getElementById('rule-hwid-lock').checked;
+        const block_vpn = document.getElementById('rule-block-vpn').checked;
+        const block_dev_mode = document.getElementById('rule-block-dev').checked;
+        
+        try {
+            const res = await fetch(`/api/admin/apps/${activeAppId}/rules`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ hwid_lock, block_vpn, block_dev_mode })
+            });
+            if(res.ok) {
+                showToast('Rules updated successfully!');
+                fetchApps(); // refresh local activeApp rules
+            } else { showToast('Failed to update rules', true); }
+        } catch(e) { showToast('Server error', true); }
+    };
+}

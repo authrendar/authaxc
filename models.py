@@ -86,3 +86,24 @@ class ClientRedeemRequest(BaseModel):
     password: str
     token: str
     hwid: str
+
+class AppRulesUpdate(BaseModel):
+    hwid_lock: bool = True
+    block_vpn: bool = False
+    block_dev_mode: bool = False
+
+class ChatMessageCreate(BaseModel):
+    app_id: str
+    message: str = Field(..., min_length=1, max_length=500)
+
+class ClientChatRequest(BaseModel):
+    app_id: str
+    username: str
+    password: str
+    hwid: str
+    message: Optional[str] = None # Used for both GET and POST
+
+class ResourceCreate(BaseModel):
+    app_id: str
+    title: str = Field(..., min_length=2, max_length=100)
+    content: str = Field(..., min_length=1)

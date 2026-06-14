@@ -26,6 +26,10 @@ variables_collection = db["variables"]
 webhooks_collection = db["webhooks"]
 subscriptions_collection = db["subscriptions"]
 tokens_collection = db["tokens"]
+sessions_collection = db["sessions"]
+files_collection = db["files"]
+chats_collection = db["chats"]
+resources_collection = db["resources"]
 
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()

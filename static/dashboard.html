@@ -80,22 +80,22 @@
                 <a href="#" class="nav-item" data-tab="subscriptions">
                     <i class="fa-solid fa-box-open"></i> Subscriptions
                 </a>
-                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
+                <a href="#" class="nav-item" data-tab="chats">
                     <i class="fa-regular fa-comments"></i> Chats
                 </a>
-                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
+                <a href="#" class="nav-item" data-tab="sessions">
                     <i class="fa-solid fa-desktop"></i> Sessions
                 </a>
                 <a href="#" class="nav-item" data-tab="webhooks">
                     <i class="fa-solid fa-link"></i> Webhooks
                 </a>
-                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
+                <a href="#" class="nav-item" data-tab="files">
                     <i class="fa-solid fa-upload"></i> Files
                 </a>
                 <a href="#" class="nav-item" data-tab="variables">
                     <i class="fa-solid fa-sliders"></i> Variables
                 </a>
-                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
+                <a href="#" class="nav-item" data-tab="rules">
                     <i class="fa-solid fa-scale-balanced"></i> Rules
                 </a>
                 <a href="#" class="nav-item" data-tab="logs">
@@ -107,7 +107,7 @@
                 <a href="#" class="nav-item" data-tab="web-admins">
                     <i class="fa-solid fa-user-shield"></i> Web Admins
                 </a>
-                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
+                <a href="#" class="nav-item" data-tab="resources">
                     <i class="fa-solid fa-book"></i> Resources
                 </a>
             </nav>
@@ -631,6 +631,139 @@
                     </div>
                 </section>
 
+                <!-- Sessions Tab -->
+                <section id="tab-sessions" class="tab-content hidden">
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Active Sessions</h1>
+                            <p>Track and manage client logins.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Session ID</th>
+                                    <th>Username</th>
+                                    <th>HWID</th>
+                                    <th>Login Time</th>
+                                    <th style="width: 80px; text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessions-table-body">
+                                <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No active sessions</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Files Tab -->
+                <section id="tab-files" class="tab-content hidden">
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>File Hosting</h1>
+                            <p>Secure files that only authenticated clients can download.</p>
+                        </div>
+                        <button id="btn-upload-file-modal" class="btn btn-blue"><i class="fa-solid fa-upload"></i> Upload File</button>
+                    </div>
+                    <div class="card">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Filename</th>
+                                    <th>Size</th>
+                                    <th>Uploaded At</th>
+                                    <th style="width: 80px; text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="files-table-body">
+                                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No files uploaded</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Chats Tab -->
+                <section id="tab-chats" class="tab-content hidden">
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Global Chat</h1>
+                            <p>View client messages.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Message</th>
+                                    <th>Time</th>
+                                    <th style="width: 80px; text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="chats-table-body">
+                                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No messages</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Rules Tab -->
+                <section id="tab-rules" class="tab-content hidden">
+                    <div class="page-header">
+                        <h1>Security Rules</h1>
+                        <p>Configure protection features for this application.</p>
+                    </div>
+                    <div class="card" style="max-width: 500px;">
+                        <form id="rules-form">
+                            <div class="input-group" style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;">
+                                <label style="margin:0; font-weight:500;">HWID Lock</label>
+                                <input type="checkbox" id="rule-hwid-lock" checked style="width:20px; height:20px;">
+                            </div>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:-10px; margin-bottom:20px;">If enabled, clients can only login from their registered hardware.</p>
+
+                            <div class="input-group" style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;">
+                                <label style="margin:0; font-weight:500;">Block VPN (Placeholder)</label>
+                                <input type="checkbox" id="rule-block-vpn" style="width:20px; height:20px;">
+                            </div>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:-10px; margin-bottom:20px;">Block known datacenter and VPN IPs.</p>
+
+                            <div class="input-group" style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;">
+                                <label style="margin:0; font-weight:500;">Block Dev Mode (Placeholder)</label>
+                                <input type="checkbox" id="rule-block-dev" style="width:20px; height:20px;">
+                            </div>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:-10px; margin-bottom:20px;">Signal client SDK to exit if debuggers are detected.</p>
+
+                            <button type="submit" class="btn btn-blue">Save Rules</button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Resources Tab -->
+                <section id="tab-resources" class="tab-content hidden">
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Resources</h1>
+                            <p>Documentation and guides for your users.</p>
+                        </div>
+                        <button id="btn-add-resource-modal" class="btn btn-blue"><i class="fa-solid fa-plus"></i> Add Resource</button>
+                    </div>
+                    <div class="card">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Content Preview</th>
+                                    <th style="width: 80px; text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resources-table-body">
+                                <tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:20px;">No resources found</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
             </main>
         </div>
     </div>
@@ -814,6 +947,44 @@
                     <input type="text" id="token-note" placeholder="For reseller X..." autocomplete="off">
                 </div>
                 <button type="submit" class="btn btn-blue btn-block">Generate</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upload File Modal -->
+    <div id="upload-file-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload File</h3>
+                <button id="btn-close-file-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="upload-file-form">
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Select File</label>
+                    <input type="file" id="file-input" required>
+                </div>
+                <button type="submit" class="btn btn-blue btn-block">Upload</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Resource Modal -->
+    <div id="add-resource-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Resource</h3>
+                <button id="btn-close-resource-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="add-resource-form">
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Title</label>
+                    <input type="text" id="resource-title" placeholder="e.g. Injection Guide" required autocomplete="off">
+                </div>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Content (Markdown/Text)</label>
+                    <textarea id="resource-content" rows="6" placeholder="Write your guide here..." required style="width:100%; border:1px solid var(--border-color); background:rgba(255,255,255,0.02); color:var(--text-color); border-radius:6px; padding:10px;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-blue btn-block">Save Resource</button>
             </form>
         </div>
     </div>
