@@ -152,11 +152,14 @@ function switchTab(tabId) {
     tabContents.forEach(content => {
         if (content.id === `tab-${tabId}`) {
             content.classList.add('active-content');
+            content.classList.remove('hidden');
         } else {
             content.classList.remove('active-content');
+            content.classList.add('hidden');
         }
     });
 }
+
 
 // Fetch all applications
 async function fetchApps() {
