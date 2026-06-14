@@ -46,3 +46,22 @@ class ClientLicenseLogin(BaseModel):
 
 class AppRename(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
+
+class VariableCreate(BaseModel):
+    app_id: str
+    name: str = Field(..., min_length=1, max_length=50)
+    value: str
+
+class WebhookCreate(BaseModel):
+    app_id: str
+    name: str = Field(..., min_length=1, max_length=50)
+    url: str = Field(..., min_length=10)
+
+class ClientVariableRequest(BaseModel):
+    app_id: str
+    name: str
+
+class ClientWebhookRequest(BaseModel):
+    app_id: str
+    name: str
+    payload: dict

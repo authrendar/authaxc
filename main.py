@@ -6,6 +6,7 @@ import hashlib
 import json
 import base64
 import pyotp
+import requests
 from datetime import datetime, timedelta
 from typing import List
 
@@ -577,10 +578,74 @@ def client_license_login(data: models.ClientLicenseLogin):
         "expires_at": lic["expires_at"]
     }
 
+# --- VARIABLES ---
+@app.get("/api/admin/variables")
+def list_variables(app_id: str, username: str = Depends(get_current_admin)):
+    vars = list(db.variables_collection.find({"app_id": app_id}, {"_id": 0}))
+    return vars
+
+@app.post("/api/admin/variables")
+def create_variable(data: models.VariableCreate, username: str = Depends(get_current_admin)):
+    if db.variables_collection.find_one({"app_id": data.app_id, "name": data.name}):
+        raise HTTPException(status_code=400, detail="Variable with this name already exists")
+    var_doc = {"app_id": data.app_id, "name": data.name, "value": data.value}
+    db.variables_collection.insert_one(var_doc)
+    log_event(data.app_id, "Variable Create", f"Created variable '{data.name}'")
+    return {"status": "success"}
+
+@app.delete("/api/admin/variables/{name}")
+def delete_variable(name: str, app_id: str, username: str = Depends(get_current_admin)):
+    db.variables_collection.delete_one({"app_id": app_id, "name": name})
+    log_event(app_id, "Variable Delete", f"Deleted variable '{name}'")
+    return {"status": "success"}
+
+@app.post("/api/client/variable")
+def client_get_variable(data: models.ClientVariableRequest):
+    var = db.variables_collection.find_one({"app_id": data.app_id, "name": data.name})
+    if not var:
+        raise HTTPException(status_code=404, detail="Variable not found")
+    return {"status": "success", "value": var["value"]}
+
+# --- WEBHOOKS ---
+@app.get("/api/admin/webhooks")
+def list_webhooks(app_id: str, username: str = Depends(get_current_admin)):
+    hooks = list(db.webhooks_collection.find({"app_id": app_id}, {"_id": 0}))
+    return hooks
+
+@app.post("/api/admin/webhooks")
+def create_webhook(data: models.WebhookCreate, username: str = Depends(get_current_admin)):
+    if db.webhooks_collection.find_one({"app_id": data.app_id, "name": data.name}):
+        raise HTTPException(status_code=400, detail="Webhook with this name already exists")
+    hook_doc = {"app_id": data.app_id, "name": data.name, "url": data.url}
+    db.webhooks_collection.insert_one(hook_doc)
+    log_event(data.app_id, "Webhook Create", f"Created webhook '{data.name}'")
+    return {"status": "success"}
+
+@app.delete("/api/admin/webhooks/{name}")
+def delete_webhook(name: str, app_id: str, username: str = Depends(get_current_admin)):
+    db.webhooks_collection.delete_one({"app_id": app_id, "name": name})
+    log_event(app_id, "Webhook Delete", f"Deleted webhook '{name}'")
+    return {"status": "success"}
+
+@app.post("/api/client/webhook")
+def client_trigger_webhook(data: models.ClientWebhookRequest):
+    hook = db.webhooks_collection.find_one({"app_id": data.app_id, "name": data.name})
+    if not hook:
+        raise HTTPException(status_code=404, detail="Webhook not found")
+    try:
+        resp = requests.post(hook["url"], json=data.payload, timeout=5)
+        return {"status": "success", "response": resp.text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- PAGE ROUTING ---
 @app.get("/")
 def home(request: Request):
     return FileResponse("static/index.html")
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 @app.get("/dashboard")
 def dashboard_page(request: Request):

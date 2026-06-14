@@ -86,13 +86,13 @@
                 <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-desktop"></i> Sessions
                 </a>
-                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
+                <a href="#" class="nav-item" data-tab="webhooks">
                     <i class="fa-solid fa-link"></i> Webhooks
                 </a>
                 <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
                     <i class="fa-solid fa-upload"></i> Files
                 </a>
-                <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
+                <a href="#" class="nav-item" data-tab="variables">
                     <i class="fa-solid fa-sliders"></i> Variables
                 </a>
                 <a href="#" class="nav-item" onclick="showToast('This feature is coming soon!', true)">
@@ -400,6 +400,76 @@
                     </div>
                 </section>
                 
+                <!-- Tab content: Variables -->
+                <section id="tab-variables" class="tab-content hidden">
+                    <div class="breadcrumb">
+                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Variables
+                    </div>
+                    
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Variables</h1>
+                            <p>Store secure strings to be retrieved by the client application.</p>
+                        </div>
+                        <button class="btn btn-blue" id="btn-create-variable"><i class="fa-solid fa-plus"></i> Create Variable</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>NAME</th>
+                                        <th>VALUE</th>
+                                        <th style="text-align:center;">ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="variables-table-body">
+                                </tbody>
+                            </table>
+                            <div id="no-variables-msg" class="empty-state hidden">
+                                <i class="fa-solid fa-sliders" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 10px;"></i>
+                                <p>No variables found.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tab content: Webhooks -->
+                <section id="tab-webhooks" class="tab-content hidden">
+                    <div class="breadcrumb">
+                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Webhooks
+                    </div>
+                    
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Webhooks</h1>
+                            <p>Store secure endpoint URLs that can be requested by the client application.</p>
+                        </div>
+                        <button class="btn btn-blue" id="btn-create-webhook"><i class="fa-solid fa-plus"></i> Create Webhook</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>NAME</th>
+                                        <th>URL</th>
+                                        <th style="text-align:center;">ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="webhooks-table-body">
+                                </tbody>
+                            </table>
+                            <div id="no-webhooks-msg" class="empty-state hidden">
+                                <i class="fa-solid fa-link" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 10px;"></i>
+                                <p>No webhooks found.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Tab content: Web Admins -->
                 <section id="tab-web-admins" class="tab-content hidden">
                     <div class="breadcrumb">
@@ -564,6 +634,48 @@
                     </div>
                 </div>
                 <button type="submit" class="btn btn-blue btn-block">Generate Keys</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Variable Modal -->
+    <div id="create-variable-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Variable</h3>
+                <button id="btn-close-variable-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="create-variable-form">
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Variable Name</label>
+                    <input type="text" id="new-variable-name" required autocomplete="off">
+                </div>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Value</label>
+                    <input type="text" id="new-variable-value" required autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-blue btn-block">Save Variable</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Webhook Modal -->
+    <div id="create-webhook-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Webhook</h3>
+                <button id="btn-close-webhook-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="create-webhook-form">
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Webhook Name</label>
+                    <input type="text" id="new-webhook-name" required autocomplete="off">
+                </div>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">URL</label>
+                    <input type="url" id="new-webhook-url" placeholder="https://..." required autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-blue btn-block">Save Webhook</button>
             </form>
         </div>
     </div>

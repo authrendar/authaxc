@@ -348,6 +348,10 @@ function updateActiveAppDisplay() {
         fetchLogs();
     } else if (activeTab === 'web-admins') {
         fetchPlatformAdmins();
+    } else if (activeTab === 'variables') {
+        fetchVariables();
+    } else if (activeTab === 'webhooks') {
+        fetchWebhooks();
     } else if (activeTab === 'settings') {
         fetch2FAStatus();
     }
@@ -1190,3 +1194,219 @@ if (document.getElementById('btn-confirm-disable-2fa')) {
         }
     });
 }
+
+// ==========================================
+// VARIABLES MANAGEMENT
+// ==========================================
+let variablesList = [];
+const variablesTableBody = document.getElementById('variables-table-body');
+const noVariablesMsg = document.getElementById('no-variables-msg');
+const createVariableModal = document.getElementById('create-variable-modal');
+const btnCreateVariable = document.getElementById('btn-create-variable');
+const btnCloseVariableModal = document.getElementById('btn-close-variable-modal');
+const createVariableForm = document.getElementById('create-variable-form');
+
+async function fetchVariables() {
+    if (!activeAppId) return;
+    try {
+        const response = await fetch(`/api/admin/variables?app_id=${activeAppId}`);
+        if (response.ok) {
+            variablesList = await response.json();
+            renderVariables();
+        } else {
+            showToast('Failed to fetch variables', true);
+        }
+    } catch (e) {
+        showToast('Server connection error!', true);
+    }
+}
+
+function renderVariables() {
+    if (!variablesTableBody) return;
+    variablesTableBody.innerHTML = '';
+    
+    if (variablesList.length === 0) {
+        if (noVariablesMsg) noVariablesMsg.classList.remove('hidden');
+    } else {
+        if (noVariablesMsg) noVariablesMsg.classList.add('hidden');
+        
+        variablesList.forEach(variable => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${variable.name}</strong></td>
+                <td style="font-family: monospace; font-size: 0.85rem; color: var(--color-green);">${variable.value}</td>
+                <td>
+                    <div class="action-buttons" style="justify-content: center;">
+                        <button onclick="deleteVariable('${variable.name}')" class="btn-action ban-btn" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </td>
+            `;
+            variablesTableBody.appendChild(tr);
+        });
+    }
+}
+
+if(btnCreateVariable) {
+    btnCreateVariable.addEventListener('click', () => {
+        if(!activeAppId) return showToast('Please select an application', true);
+        createVariableForm.reset();
+        createVariableModal.classList.remove('hidden');
+    });
+}
+
+if(btnCloseVariableModal) {
+    btnCloseVariableModal.addEventListener('click', () => {
+        createVariableModal.classList.add('hidden');
+    });
+}
+
+if(createVariableForm) {
+    createVariableForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('new-variable-name').value;
+        const value = document.getElementById('new-variable-value').value;
+        
+        try {
+            const response = await fetch('/api/admin/variables', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ app_id: activeAppId, name, value })
+            });
+            
+            if(response.ok) {
+                showToast('Variable created successfully!');
+                createVariableModal.classList.add('hidden');
+                fetchVariables();
+            } else {
+                const data = await response.json();
+                showToast(data.detail || 'Failed to create variable', true);
+            }
+        } catch(e) {
+            showToast('Server connection error', true);
+        }
+    });
+}
+
+window.deleteVariable = async function(name) {
+    if(confirm(`Delete variable '${name}'?`)) {
+        try {
+            const response = await fetch(`/api/admin/variables/${name}?app_id=${activeAppId}`, { method: 'DELETE' });
+            if(response.ok) {
+                showToast('Variable deleted');
+                fetchVariables();
+            } else {
+                showToast('Failed to delete variable', true);
+            }
+        } catch(e) {
+            showToast('Server connection error', true);
+        }
+    }
+};
+
+// ==========================================
+// WEBHOOKS MANAGEMENT
+// ==========================================
+let webhooksList = [];
+const webhooksTableBody = document.getElementById('webhooks-table-body');
+const noWebhooksMsg = document.getElementById('no-webhooks-msg');
+const createWebhookModal = document.getElementById('create-webhook-modal');
+const btnCreateWebhook = document.getElementById('btn-create-webhook');
+const btnCloseWebhookModal = document.getElementById('btn-close-webhook-modal');
+const createWebhookForm = document.getElementById('create-webhook-form');
+
+async function fetchWebhooks() {
+    if (!activeAppId) return;
+    try {
+        const response = await fetch(`/api/admin/webhooks?app_id=${activeAppId}`);
+        if (response.ok) {
+            webhooksList = await response.json();
+            renderWebhooks();
+        } else {
+            showToast('Failed to fetch webhooks', true);
+        }
+    } catch (e) {
+        showToast('Server connection error!', true);
+    }
+}
+
+function renderWebhooks() {
+    if (!webhooksTableBody) return;
+    webhooksTableBody.innerHTML = '';
+    
+    if (webhooksList.length === 0) {
+        if (noWebhooksMsg) noWebhooksMsg.classList.remove('hidden');
+    } else {
+        if (noWebhooksMsg) noWebhooksMsg.classList.add('hidden');
+        
+        webhooksList.forEach(webhook => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${webhook.name}</strong></td>
+                <td style="font-family: monospace; font-size: 0.8rem; color: var(--color-blue);">${webhook.url}</td>
+                <td>
+                    <div class="action-buttons" style="justify-content: center;">
+                        <button onclick="deleteWebhook('${webhook.name}')" class="btn-action ban-btn" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </td>
+            `;
+            webhooksTableBody.appendChild(tr);
+        });
+    }
+}
+
+if(btnCreateWebhook) {
+    btnCreateWebhook.addEventListener('click', () => {
+        if(!activeAppId) return showToast('Please select an application', true);
+        createWebhookForm.reset();
+        createWebhookModal.classList.remove('hidden');
+    });
+}
+
+if(btnCloseWebhookModal) {
+    btnCloseWebhookModal.addEventListener('click', () => {
+        createWebhookModal.classList.add('hidden');
+    });
+}
+
+if(createWebhookForm) {
+    createWebhookForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('new-webhook-name').value;
+        const url = document.getElementById('new-webhook-url').value;
+        
+        try {
+            const response = await fetch('/api/admin/webhooks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ app_id: activeAppId, name, url })
+            });
+            
+            if(response.ok) {
+                showToast('Webhook created successfully!');
+                createWebhookModal.classList.add('hidden');
+                fetchWebhooks();
+            } else {
+                const data = await response.json();
+                showToast(data.detail || 'Failed to create webhook', true);
+            }
+        } catch(e) {
+            showToast('Server connection error', true);
+        }
+    });
+}
+
+window.deleteWebhook = async function(name) {
+    if(confirm(`Delete webhook '${name}'?`)) {
+        try {
+            const response = await fetch(`/api/admin/webhooks/${name}?app_id=${activeAppId}`, { method: 'DELETE' });
+            if(response.ok) {
+                showToast('Webhook deleted');
+                fetchWebhooks();
+            } else {
+                showToast('Failed to delete webhook', true);
+            }
+        } catch(e) {
+            showToast('Server connection error', true);
+        }
+    }
+};
