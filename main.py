@@ -88,9 +88,37 @@ def get_current_admin(request: Request):
         raise HTTPException(status_code=401, detail="Unauthorized access")
         
     payload = verify_jwt(token)
-    if not payload or payload.get("role") != "admin":
+    if not payload or payload.get("role") not in ["admin", "seller"]:
         raise HTTPException(status_code=401, detail="Invalid session token")
     return payload["username"]
+
+def get_super_admin(request: Request):
+    token = request.cookies.get("admin_token")
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            
+    if not token:
+        raise HTTPException(status_code=401, detail="Unauthorized access")
+        
+    payload = verify_jwt(token)
+    if not payload or payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Super Admin access required")
+    return payload["username"]
+
+
+# --- OWNERSHIP HELPERS ---
+def get_user_apps(username: str):
+    return [app["id"] for app in db.apps_collection.find({"owner": username})]
+
+def verify_app_owner(app_id: str, username: str):
+    app = db.apps_collection.find_one({"id": app_id})
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    if app.get("owner") != username:
+        raise HTTPException(status_code=403, detail="Forbidden: Not your application")
+    return app
 
 # --- EVENT LOGGING HELPER ---
 def log_event(app_id: str, event: str, details: str):
@@ -110,27 +138,20 @@ def list_logs(app_id: str = None, limit: int = 100, username: str = Depends(get_
     query = {}
     if app_id:
         query["app_id"] = app_id
+        verify_app_owner(app_id, username)
+    else:
+        query["app_id"] = {"$in": get_user_apps(username)}
     logs = list(db.logs_collection.find(query, {"_id": 0}).sort("timestamp", -1).limit(limit))
     return logs
 
 # --- ADMIN LOGIN / LOGOUT / REGISTER ---
 @app.post("/api/admin/register")
 def admin_register(data: models.AdminRegister):
-    if db.users_collection.find_one({"username": data.username, "role": "admin"}):
-        raise HTTPException(status_code=400, detail="Username already exists")
-        
-    user_doc = {
-        "username": data.username,
-        "password": db.hash_password(data.password),
-        "role": "admin",
-        "created_at": datetime.utcnow().isoformat()
-    }
-    db.users_collection.insert_one(user_doc)
-    return {"status": "success", "message": "Registered successfully"}
+    raise HTTPException(status_code=403, detail="Public registration is disabled. Contact an administrator.")
 
 @app.post("/api/admin/login")
 def admin_login(data: models.AdminLogin, response: Response):
-    user = db.users_collection.find_one({"username": data.username, "role": "admin"})
+    user = db.users_collection.find_one({"username": data.username, "role": {"$in": ["admin", "seller"]}})
     if not user or not db.verify_password(data.password, user["password"]):
         raise HTTPException(status_code=400, detail="Invalid username or password")
     
@@ -145,7 +166,7 @@ def admin_login(data: models.AdminLogin, response: Response):
     
     token = create_jwt({
         "username": data.username,
-        "role": "admin",
+        "role": user.get("role", "admin"),
         "exp": int(time.time()) + (24 * 3600)
     })
     
@@ -157,7 +178,7 @@ def admin_login(data: models.AdminLogin, response: Response):
         samesite="lax",
         secure=False
     )
-    return {"status": "success", "message": "Logged in successfully"}
+    return {"status": "success", "message": "Logged in successfully", "role": user.get("role", "admin")}
 
 @app.post("/api/admin/logout")
 def admin_logout(response: Response, username: str = Depends(get_current_admin)):
@@ -171,14 +192,14 @@ class Verify2FA(BaseModel):
 
 @app.get("/api/admin/2fa/status")
 def check_2fa_status(username: str = Depends(get_current_admin)):
-    user = db.users_collection.find_one({"username": username, "role": "admin"})
+    user = db.users_collection.find_one({"username": username, "role": {"$in": ["admin", "seller"]}})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return {"is_2fa_enabled": user.get("is_2fa_enabled", False)}
 
 @app.post("/api/admin/2fa/setup")
 def setup_2fa(username: str = Depends(get_current_admin)):
-    user = db.users_collection.find_one({"username": username, "role": "admin"})
+    user = db.users_collection.find_one({"username": username, "role": {"$in": ["admin", "seller"]}})
     if user.get("is_2fa_enabled"):
         raise HTTPException(status_code=400, detail="2FA is already enabled")
         
@@ -193,7 +214,7 @@ def setup_2fa(username: str = Depends(get_current_admin)):
 
 @app.post("/api/admin/2fa/verify")
 def verify_and_enable_2fa(data: Verify2FA, username: str = Depends(get_current_admin)):
-    user = db.users_collection.find_one({"username": username, "role": "admin"})
+    user = db.users_collection.find_one({"username": username, "role": {"$in": ["admin", "seller"]}})
     if not user or not user.get("totp_secret"):
         raise HTTPException(status_code=400, detail="2FA setup not initiated")
         
@@ -206,7 +227,7 @@ def verify_and_enable_2fa(data: Verify2FA, username: str = Depends(get_current_a
 
 @app.post("/api/admin/2fa/disable")
 def disable_2fa(data: Verify2FA, username: str = Depends(get_current_admin)):
-    user = db.users_collection.find_one({"username": username, "role": "admin"})
+    user = db.users_collection.find_one({"username": username, "role": {"$in": ["admin", "seller"]}})
     if not user or not user.get("is_2fa_enabled"):
         raise HTTPException(status_code=400, detail="2FA is not enabled")
         
@@ -218,13 +239,30 @@ def disable_2fa(data: Verify2FA, username: str = Depends(get_current_admin)):
     return {"status": "success", "message": "2FA disabled successfully"}
 
 # --- PLATFORM ADMINS MANAGEMENT ---
+class DashboardUserCreate(BaseModel):
+    username: str
+    password: str
+    role: str = "seller"
+
+@app.post("/api/admin/platform_users")
+def create_platform_user(data: DashboardUserCreate, username: str = Depends(get_super_admin)):
+    if db.users_collection.find_one({"username": data.username, "role": {"$in": ["admin", "seller"]}}):
+        raise HTTPException(status_code=400, detail="Username already exists")
+    db.users_collection.insert_one({
+        "username": data.username,
+        "password": db.hash_password(data.password),
+        "role": data.role,
+        "created_at": datetime.utcnow().isoformat()
+    })
+    return {"status": "success"}
+
 @app.get("/api/admin/platform_users")
-def list_platform_users(username: str = Depends(get_current_admin)):
+def list_platform_users(username: str = Depends(get_super_admin)):
     admins = list(db.users_collection.find({"role": "admin"}, {"_id": 0, "password": 0}))
     return admins
 
 @app.delete("/api/admin/platform_users/{target_username}")
-def delete_platform_user(target_username: str, username: str = Depends(get_current_admin)):
+def delete_platform_user(target_username: str, username: str = Depends(get_super_admin)):
     if target_username == username:
         raise HTTPException(status_code=400, detail="You cannot delete your own admin account")
     
@@ -245,6 +283,7 @@ def create_app(data: models.AppCreate, username: str = Depends(get_current_admin
         "id": app_id,
         "name": data.name,
         "secret": app_secret,
+        "owner": username,
         "created_at": datetime.utcnow().isoformat()
     }
     db.apps_collection.insert_one(app_doc)
@@ -253,23 +292,19 @@ def create_app(data: models.AppCreate, username: str = Depends(get_current_admin
 
 @app.get("/api/admin/apps")
 def list_apps(username: str = Depends(get_current_admin)):
-    apps = list(db.apps_collection.find({}, {"_id": 0}))
+    apps = list(db.apps_collection.find({"owner": username}, {"_id": 0}))
     return apps
 
 @app.put("/api/admin/apps/{app_id}")
 def rename_app(app_id: str, data: models.AppRename, username: str = Depends(get_current_admin)):
-    app = db.apps_collection.find_one({"id": app_id})
-    if not app:
-        raise HTTPException(status_code=404, detail="Application not found")
+    app = verify_app_owner(app_id, username)
     db.apps_collection.update_one({"id": app_id}, {"$set": {"name": data.name}})
     log_event(app_id, "App Rename", f"Renamed application from '{app['name']}' to '{data.name}'")
     return {"status": "success", "message": "Application renamed successfully"}
 
 @app.delete("/api/admin/apps/{app_id}")
 def delete_app(app_id: str, username: str = Depends(get_current_admin)):
-    app = db.apps_collection.find_one({"id": app_id})
-    if not app:
-        raise HTTPException(status_code=404, detail="Application not found")
+    app = verify_app_owner(app_id, username)
     db.apps_collection.delete_one({"id": app_id})
     db.users_collection.delete_many({"app_id": app_id})
     db.licenses_collection.delete_many({"app_id": app_id})
@@ -282,11 +317,15 @@ def list_licenses(app_id: str = None, username: str = Depends(get_current_admin)
     query = {}
     if app_id:
         query["app_id"] = app_id
+        verify_app_owner(app_id, username)
+    else:
+        query["app_id"] = {"$in": get_user_apps(username)}
     licenses = list(db.licenses_collection.find(query, {"_id": 0}))
     return licenses
 
 @app.post("/api/admin/licenses")
 def generate_licenses(data: models.LicenseGenerate, username: str = Depends(get_current_admin)):
+    verify_app_owner(data.app_id, username)
     app = db.apps_collection.find_one({"id": data.app_id})
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -320,6 +359,7 @@ def delete_license(key: str, username: str = Depends(get_current_admin)):
     lic = db.licenses_collection.find_one({"key": key})
     if not lic:
         raise HTTPException(status_code=404, detail="License key not found")
+    verify_app_owner(lic["app_id"], username)
         
     if lic["used_by"] and lic["used_by"] != "Key-Only":
         db.users_collection.delete_one({"username": lic["used_by"], "app_id": lic["app_id"]})
@@ -333,6 +373,7 @@ def ban_license(key: str, username: str = Depends(get_current_admin)):
     lic = db.licenses_collection.find_one({"key": key})
     if not lic:
         raise HTTPException(status_code=404, detail="License key not found")
+    verify_app_owner(lic["app_id"], username)
     db.licenses_collection.update_one({"key": key}, {"$set": {"is_banned": True}})
     log_event(lic["app_id"], "License Ban", f"Banned key '{key}'")
     return {"status": "success", "message": "License banned successfully"}
@@ -342,6 +383,7 @@ def unban_license(key: str, username: str = Depends(get_current_admin)):
     lic = db.licenses_collection.find_one({"key": key})
     if not lic:
         raise HTTPException(status_code=404, detail="License key not found")
+    verify_app_owner(lic["app_id"], username)
     db.licenses_collection.update_one({"key": key}, {"$set": {"is_banned": False}})
     log_event(lic["app_id"], "License Unban", f"Unbanned key '{key}'")
     return {"status": "success", "message": "License unbanned successfully"}
@@ -351,6 +393,7 @@ def reset_hwid(key: str, username: str = Depends(get_current_admin)):
     lic = db.licenses_collection.find_one({"key": key})
     if not lic:
         raise HTTPException(status_code=404, detail="License key not found")
+    verify_app_owner(lic["app_id"], username)
         
     db.licenses_collection.update_one({"key": key}, {"$set": {"hwid": None}})
     if lic["used_by"] and lic["used_by"] != "Key-Only":
@@ -365,11 +408,15 @@ def list_users(app_id: str = None, username: str = Depends(get_current_admin)):
     query = {}
     if app_id:
         query["app_id"] = app_id
+        verify_app_owner(app_id, username)
+    else:
+        query["app_id"] = {"$in": get_user_apps(username)}
     users = list(db.users_collection.find(query, {"_id": 0, "password": 0}))
     return users
 
 @app.post("/api/admin/users")
 def create_user(data: models.UserCreate, username: str = Depends(get_current_admin)):
+    verify_app_owner(data.app_id, username)
     app = db.apps_collection.find_one({"id": data.app_id})
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -637,11 +684,13 @@ def client_license_login(data: models.ClientLicenseLogin):
 # --- VARIABLES ---
 @app.get("/api/admin/variables")
 def list_variables(app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     vars = list(db.variables_collection.find({"app_id": app_id}, {"_id": 0}))
     return vars
 
 @app.post("/api/admin/variables")
 def create_variable(data: models.VariableCreate, username: str = Depends(get_current_admin)):
+    verify_app_owner(data.app_id, username)
     if db.variables_collection.find_one({"app_id": data.app_id, "name": data.name}):
         raise HTTPException(status_code=400, detail="Variable with this name already exists")
     var_doc = {"app_id": data.app_id, "name": data.name, "value": data.value}
@@ -651,6 +700,7 @@ def create_variable(data: models.VariableCreate, username: str = Depends(get_cur
 
 @app.delete("/api/admin/variables/{name}")
 def delete_variable(name: str, app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     db.variables_collection.delete_one({"app_id": app_id, "name": name})
     log_event(app_id, "Variable Delete", f"Deleted variable '{name}'")
     return {"status": "success"}
@@ -665,11 +715,13 @@ def client_get_variable(data: models.ClientVariableRequest):
 # --- WEBHOOKS ---
 @app.get("/api/admin/webhooks")
 def list_webhooks(app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     hooks = list(db.webhooks_collection.find({"app_id": app_id}, {"_id": 0}))
     return hooks
 
 @app.post("/api/admin/webhooks")
 def create_webhook(data: models.WebhookCreate, username: str = Depends(get_current_admin)):
+    verify_app_owner(data.app_id, username)
     if db.webhooks_collection.find_one({"app_id": data.app_id, "name": data.name}):
         raise HTTPException(status_code=400, detail="Webhook with this name already exists")
     hook_doc = {"app_id": data.app_id, "name": data.name, "url": data.url}
@@ -679,6 +731,7 @@ def create_webhook(data: models.WebhookCreate, username: str = Depends(get_curre
 
 @app.delete("/api/admin/webhooks/{name}")
 def delete_webhook(name: str, app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     db.webhooks_collection.delete_one({"app_id": app_id, "name": name})
     log_event(app_id, "Webhook Delete", f"Deleted webhook '{name}'")
     return {"status": "success"}
@@ -697,11 +750,13 @@ def client_trigger_webhook(data: models.ClientWebhookRequest):
 # --- SUBSCRIPTIONS ---
 @app.get("/api/admin/subscriptions")
 def list_subscriptions(app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     subs = list(db.subscriptions_collection.find({"app_id": app_id}, {"_id": 0}))
     return subs
 
 @app.post("/api/admin/subscriptions")
 def create_subscription(data: models.SubscriptionCreate, username: str = Depends(get_current_admin)):
+    verify_app_owner(data.app_id, username)
     sub_id = f"SUB-{uuid.uuid4().hex[:8]}"
     sub_doc = {
         "id": sub_id,
@@ -715,6 +770,7 @@ def create_subscription(data: models.SubscriptionCreate, username: str = Depends
 
 @app.delete("/api/admin/subscriptions/{sub_id}")
 def delete_subscription(sub_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     db.subscriptions_collection.delete_one({"app_id": app_id, "id": sub_id})
     log_event(app_id, "Subscription Delete", f"Deleted subscription '{sub_id}'")
     return {"status": "success"}
@@ -722,11 +778,13 @@ def delete_subscription(sub_id: str, app_id: str, username: str = Depends(get_cu
 # --- TOKENS ---
 @app.get("/api/admin/tokens")
 def list_tokens(app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     tokens = list(db.tokens_collection.find({"app_id": app_id}, {"_id": 0}))
     return tokens
 
 @app.post("/api/admin/tokens")
 def generate_tokens(data: models.TokenGenerate, username: str = Depends(get_current_admin)):
+    verify_app_owner(data.app_id, username)
     generated_tokens = []
     now = datetime.utcnow()
     
@@ -750,6 +808,7 @@ def generate_tokens(data: models.TokenGenerate, username: str = Depends(get_curr
 
 @app.delete("/api/admin/tokens/{token}")
 def delete_token(token: str, app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     db.tokens_collection.delete_one({"app_id": app_id, "token": token})
     log_event(app_id, "Token Delete", f"Deleted token '{token}'")
     return {"status": "success"}
@@ -802,16 +861,19 @@ import shutil
 
 @app.get("/api/admin/sessions")
 def get_sessions(app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     sessions = list(db.sessions_collection.find({"app_id": app_id}, {"_id": 0}))
     return sessions
 
 @app.delete("/api/admin/sessions/{session_id}")
 def delete_session(session_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     db.sessions_collection.delete_one({"app_id": app_id, "session_id": session_id})
     return {"status": "success"}
 
 @app.post("/api/admin/files")
 def upload_file(app_id: str = Form(...), file: UploadFile = File(...), username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     file_id = uuid.uuid4().hex
     os.makedirs("uploads", exist_ok=True)
     file_path = os.path.join("uploads", f"{file_id}_{file.filename}")
@@ -830,11 +892,13 @@ def upload_file(app_id: str = Form(...), file: UploadFile = File(...), username:
 
 @app.get("/api/admin/files")
 def get_files(app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     files = list(db.files_collection.find({"app_id": app_id}, {"_id": 0}))
     return files
 
 @app.delete("/api/admin/files/{file_id}")
 def delete_file(file_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     file_doc = db.files_collection.find_one({"id": file_id, "app_id": app_id})
     if file_doc:
         file_path = os.path.join("uploads", f"{file_id}_{file_doc['filename']}")
@@ -863,11 +927,13 @@ def client_download_file(file_id: str, data: models.ClientLogin):
 
 @app.get("/api/admin/chats")
 def admin_get_chats(app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     chats = list(db.chats_collection.find({"app_id": app_id}, {"_id": 0}).sort("timestamp", -1).limit(100))
     return chats
 
 @app.delete("/api/admin/chats/{message_id}")
 def admin_delete_chat(message_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     db.chats_collection.delete_one({"id": message_id, "app_id": app_id})
     return {"status": "success"}
 
@@ -895,11 +961,13 @@ def client_get_chats(data: models.ClientChatRequest):
 
 @app.put("/api/admin/apps/{app_id}/rules")
 def update_app_rules(app_id: str, rules: models.AppRulesUpdate, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     db.apps_collection.update_one({"id": app_id}, {"$set": {"rules": rules.dict()}})
     return {"status": "success"}
 
 @app.post("/api/admin/resources")
 def create_resource(data: models.ResourceCreate, username: str = Depends(get_current_admin)):
+    verify_app_owner(data.app_id, username)
     res_id = uuid.uuid4().hex
     db.resources_collection.insert_one({
         "id": res_id, "app_id": data.app_id, "title": data.title,
@@ -909,11 +977,13 @@ def create_resource(data: models.ResourceCreate, username: str = Depends(get_cur
 
 @app.get("/api/admin/resources")
 def get_resources(app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     resources = list(db.resources_collection.find({"app_id": app_id}, {"_id": 0}))
     return resources
 
 @app.delete("/api/admin/resources/{res_id}")
 def delete_resource(res_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    verify_app_owner(app_id, username)
     db.resources_collection.delete_one({"id": res_id, "app_id": app_id})
     return {"status": "success"}
 

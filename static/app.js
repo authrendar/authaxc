@@ -133,14 +133,76 @@ async function showDashboard() {
     dashboardView.classList.remove('hidden');
     
     const savedAdmin = localStorage.getItem('admin_user') || 'Admin';
+    const role = localStorage.getItem('admin_role');
+    if (role === 'seller') {
+        const webAdminsLink = document.querySelector('[data-tab="web-admins"]');
+        if (webAdminsLink) webAdminsLink.parentElement.style.display = 'none';
+    }
+
     adminDisplayName.textContent = savedAdmin;
     
-    switchTab('overview');
+    let initialTab = 'overview';
+    if(window.location.hash) {
+        initialTab = window.location.hash.substring(1);
+    }
+    switchTab(initialTab);
     await fetchApps();
+    
+    // Listen for back/forward navigation
+    window.addEventListener('hashchange', () => {
+        if(window.location.hash) {
+            switchTab(window.location.hash.substring(1), false);
+        } else {
+            switchTab('overview', false);
+        }
+    });
 }
 
 // Switch tabs logic
-function switchTab(tabId) {
+async function switchTab(tabId, updateHash = true) {
+    if (updateHash) {
+        window.history.pushState(null, null, '#' + tabId);
+    }
+
+    document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
+    let navItem = document.querySelector(`[data-tab="${tabId}"]`);
+    if(navItem) navItem.parentElement.classList.add('active');
+    
+    const container = document.getElementById('dynamic-tab-content');
+    if (!container) return; // Prevent error if running on wrong page
+    
+    try {
+        const response = await fetch(`/static/tabs/${tabId}.html`);
+        if (response.ok) {
+            container.innerHTML = await response.text();
+            
+            // Wait for DOM update
+            setTimeout(() => {
+                if (tabId === 'overview') loadOverview();
+                else if (tabId === 'apps') loadApps();
+                else if (tabId === 'licenses') loadLicenses();
+                else if (tabId === 'users') loadUsers();
+                else if (tabId === 'logs') loadLogs();
+                else if (tabId === 'webhooks') loadWebhooks();
+                else if (tabId === 'variables') loadVariables();
+                else if (tabId === 'subscriptions') loadSubscriptions();
+                else if (tabId === 'tokens') loadTokens();
+                else if (tabId === 'sessions') loadSessions();
+                else if (tabId === 'files') loadFiles();
+                else if (tabId === 'chats') loadChats();
+                else if (tabId === 'resources') loadResources();
+            }, 50);
+            
+        } else {
+            container.innerHTML = `<div class="error">Failed to load tab content (404)</div>`;
+        }
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="error">Failed to load tab content</div>`;
+    }
+    
+    /*
+
     navItems.forEach(item => {
         if (item.getAttribute('data-tab') === tabId) {
             item.classList.add('active');
@@ -692,7 +754,8 @@ const toggleAuthModeBtn = document.getElementById('toggle-auth-mode');
 const authSubtitle = document.getElementById('auth-subtitle');
 const authSubmitBtn = document.getElementById('auth-submit-btn');
 
-if (toggleAuthModeBtn) {
+if (toggleAuthModeBtn) toggleAuthModeBtn.style.display = 'none';
+if (false) {
     toggleAuthModeBtn.addEventListener('click', (e) => {
         e.preventDefault();
         isLoginMode = !isLoginMode;
@@ -742,6 +805,7 @@ loginForm.addEventListener('submit', async (e) => {
         if (response.ok) {
             if (isLoginMode) {
                 localStorage.setItem('admin_user', usernameInput);
+                localStorage.setItem('admin_role', data.role || 'admin');
                 showToast('Logged in successfully!');
                 showDashboard();
                 
@@ -1162,24 +1226,7 @@ async function fetch2FAStatus() {
     }
 }
 
-if (document.getElementById('btn-enable-2fa')) {
-    document.getElementById('btn-enable-2fa').addEventListener('click', async () => {
-        try {
-            const response = await fetch('/api/admin/2fa/setup', { method: 'POST' });
-            if (response.ok) {
-                const data = await response.json();
-                // We use an external API to generate the QR code image from the OTP URI
-                document.getElementById('2fa-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.uri)}`;
-                document.getElementById('2fa-setup-panel').classList.remove('hidden');
-                document.getElementById('setup-2fa-code').value = '';
-            } else {
-                showToast('Failed to setup 2FA', true);
-            }
-        } catch(e) {
-            showToast('Server connection error', true);
-        }
-    });
-}
+
 
 if (document.getElementById('btn-verify-2fa')) {
     document.getElementById('btn-verify-2fa').addEventListener('click', async () => {
@@ -1683,3 +1730,92 @@ if(rulesForm) {
         } catch(e) { showToast('Server error', true); }
     };
 }
+
+document.addEventListener('click', async (e) => {
+    // 2FA Enable
+    if (e.target.closest('#btn-enable-2fa')) {
+        try {
+            const response = await fetch('/api/admin/2fa/setup', { method: 'POST' });
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('2fa-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.uri)}`;
+                document.getElementById('2fa-setup-panel').classList.remove('hidden');
+                document.getElementById('setup-2fa-code').value = '';
+            } else {
+                showToast('Failed to setup 2FA', true);
+            }
+        } catch (err) {
+            showToast('Server error', true);
+        }
+    }
+    // 2FA Verify
+    if (e.target.closest('#btn-verify-2fa')) {
+        const code = document.getElementById('setup-2fa-code').value.trim();
+        try {
+            const response = await fetch('/api/admin/2fa/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+            if (response.ok) {
+                showToast('2FA Enabled Successfully!');
+                fetch2FAStatus();
+            } else {
+                showToast('Invalid 2FA code', true);
+            }
+        } catch (err) {
+            showToast('Server error', true);
+        }
+    }
+    // 2FA Disable Start
+    if (e.target.closest('#btn-disable-2fa')) {
+        document.getElementById('2fa-disable-panel').classList.remove('hidden');
+        document.getElementById('disable-2fa-code').value = '';
+    }
+    // 2FA Confirm Disable
+    if (e.target.closest('#btn-confirm-disable-2fa')) {
+        const code = document.getElementById('disable-2fa-code').value.trim();
+        try {
+            const response = await fetch('/api/admin/2fa/disable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+            if (response.ok) {
+                showToast('2FA Disabled Successfully!');
+                fetch2FAStatus();
+            } else {
+                showToast('Invalid 2FA code', true);
+            }
+        } catch (err) {
+            showToast('Server error', true);
+        }
+    }
+});
+
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#btn-create-dash-user')) {
+        const username = document.getElementById('new-dash-user').value.trim();
+        const password = document.getElementById('new-dash-pass').value;
+        const role = document.getElementById('new-dash-role').value;
+        if(!username || !password) return showToast('Fill all fields', true);
+        try {
+            const res = await fetch('/api/admin/platform_users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, role })
+            });
+            if(res.ok) {
+                showToast('User created successfully');
+                document.getElementById('new-dash-user').value = '';
+                document.getElementById('new-dash-pass').value = '';
+                fetchPlatformAdmins();
+            } else {
+                const data = await res.json();
+                showToast(data.detail || 'Creation failed', true);
+            }
+        } catch(err) {
+            showToast('Server error', true);
+        }
+    }
+});

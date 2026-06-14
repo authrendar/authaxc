@@ -1,0 +1,119 @@
+<section id="tab-overview" class="tab-content active-content">
+                    
+                    <div class="breadcrumb">
+                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Current Application: <span class="active-app-name-display" style="color:var(--text-muted);">---</span> <span style="color:var(--color-green); margin-left: 8px;">Active</span>
+                    </div>
+
+                    <div class="page-header">
+                        <h1>Manage Applications</h1>
+                        <p>Manage your applications. Applications are the backbone of all the data. <a href="#">Learn More.</a></p>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-block">
+                            <div class="stat-value" id="stat-total-apps">0</div>
+                            <div class="stat-label">Total Apps</div>
+                        </div>
+                        <div class="stat-block">
+                            <div class="stat-value" id="stat-active-apps">0</div>
+                            <div class="stat-label">Active</div>
+                        </div>
+                        <div class="stat-block">
+                            <div class="stat-value">0</div>
+                            <div class="stat-label">Paused</div>
+                        </div>
+                        <div class="stat-block">
+                            <div class="stat-value" id="stat-active-sessions">0</div>
+                            <div class="stat-label">Active Sessions</div>
+                        </div>
+                    </div>
+
+                    <!-- Two Column Layout -->
+                    <div class="overview-grid">
+                        
+                        <!-- Left Column: Credentials -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div style="display:flex; flex-direction:column;">
+                                    <span class="card-title">Application Credentials</span>
+                                    <span style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Simply replace the placeholder code in the example with these.</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom: 24px;">
+                                    <input type="checkbox" id="display-code-snippet" style="width:auto;">
+                                    <label for="display-code-snippet" style="font-size:0.85rem; color:var(--text-muted);">Display Code Snippet</label>
+                                </div>
+
+                                <div class="credential-item">
+                                    <label>Application Name</label>
+                                    <div class="credential-box">
+                                        <span class="credential-value" id="settings-app-name">---</span>
+                                        <i class="fa-regular fa-copy" onclick="copyToClipboard('settings-app-name')"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="credential-item">
+                                    <label>Application ID</label>
+                                    <div class="credential-box">
+                                        <span class="credential-value" id="settings-app-id">---</span>
+                                        <i class="fa-regular fa-copy" onclick="copyToClipboard('settings-app-id')"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="credential-item">
+                                    <label>Application Secret</label>
+                                    <div class="credential-box">
+                                        <span class="credential-value" id="settings-app-secret">---</span>
+                                        <i class="fa-regular fa-copy" onclick="copyToClipboard('settings-app-secret', true)"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="credential-item">
+                                    <label>Application Version</label>
+                                    <div class="credential-box">
+                                        <span class="credential-value">1.0</span>
+                                        <i class="fa-regular fa-copy"></i>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-orange" style="margin-top:20px; font-weight: 600;">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Application Secret
+                                </button>
+
+                                <div class="notice-box">
+                                    <h4><i class="fa-solid fa-circle-info"></i> Notice!</h4>
+                                    <p>Application secrets are only displayed for users using our older API endpoints. If you're using our newer API (1.3), application secrets are not used!</p>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Right Column: My Applications -->
+                        <div>
+                            <div class="app-list-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:0.95rem;">My Applications</span>
+                                <div class="search-container" style="width:200px; background:var(--bg-main); padding: 4px 10px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" placeholder="Search applications..." style="font-size:0.8rem;">
+                                </div>
+                            </div>
+                            
+                            <div style="background:var(--bg-main); padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 16px; display:flex; justify-content:space-between;">
+                                <span style="font-size:0.85rem; font-weight:600;">All Applications</span>
+                                <i class="fa-solid fa-chevron-down" style="font-size:0.75rem; color:var(--text-muted);"></i>
+                            </div>
+
+                            <button id="btn-create-app-modal" class="btn btn-blue btn-block" style="margin-bottom: 24px; font-weight: 600; padding: 12px;">
+                                <i class="fa-solid fa-plus"></i> Create Application
+                            </button>
+
+                            <div id="applications-list-container">
+                                <!-- App cards injected here -->
+                            </div>
+                        </div>
+
+                    </div>
+                </section>

@@ -1,0 +1,29 @@
+<section id="tab-rules" class="tab-content hidden">
+                    <div class="page-header">
+                        <h1>Security Rules</h1>
+                        <p>Configure protection features for this application.</p>
+                    </div>
+                    <div class="card" style="max-width: 500px;">
+                        <form id="rules-form">
+                            <div class="input-group" style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;">
+                                <label style="margin:0; font-weight:500;">HWID Lock</label>
+                                <input type="checkbox" id="rule-hwid-lock" checked style="width:20px; height:20px;">
+                            </div>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:-10px; margin-bottom:20px;">If enabled, clients can only login from their registered hardware.</p>
+
+                            <div class="input-group" style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;">
+                                <label style="margin:0; font-weight:500;">Block VPN (Placeholder)</label>
+                                <input type="checkbox" id="rule-block-vpn" style="width:20px; height:20px;">
+                            </div>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:-10px; margin-bottom:20px;">Block known datacenter and VPN IPs.</p>
+
+                            <div class="input-group" style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;">
+                                <label style="margin:0; font-weight:500;">Block Dev Mode (Placeholder)</label>
+                                <input type="checkbox" id="rule-block-dev" style="width:20px; height:20px;">
+                            </div>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:-10px; margin-bottom:20px;">Signal client SDK to exit if debuggers are detected.</p>
+
+                            <button type="submit" class="btn btn-blue">Save Rules</button>
+                        </form>
+                    </div>
+                </section>

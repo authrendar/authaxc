@@ -1,0 +1,58 @@
+<section id="tab-settings" class="tab-content hidden">
+                    <div class="page-header">
+                        <h1>Settings</h1>
+                        <p>Application and Security settings.</p>
+                    </div>
+                    
+                    <div class="card" style="max-width: 600px; margin-bottom: 20px;">
+                        <div class="card-header">
+                            <h2 class="card-title">Two-Factor Authentication (2FA)</h2>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-muted); margin-bottom: 20px;">Protect your admin account by requiring an authenticator code when logging in.</p>
+                            
+                            <div id="2fa-status-panel">
+                                <p id="2fa-status-text" style="font-weight: 500; margin-bottom: 15px;">Checking status...</p>
+                                <button id="btn-enable-2fa" class="btn btn-blue hidden">Enable 2FA</button>
+                                <button id="btn-disable-2fa" class="btn btn-red hidden">Disable 2FA</button>
+                            </div>
+                            
+                            <div id="2fa-setup-panel" class="hidden" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <h3>Setup Authenticator</h3>
+                                <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 0.9rem;">Scan this QR code with Google Authenticator or Authy.</p>
+                                <img id="2fa-qr-code" src="" alt="QR Code" style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                                
+                                <div class="input-group" style="max-width: 300px;">
+                                    <label>Enter 6-digit code to verify:</label>
+                                    <div style="display: flex; gap: 10px;">
+                                        <input type="text" id="setup-2fa-code" placeholder="123456" maxlength="6" style="flex: 1;">
+                                        <button id="btn-verify-2fa" class="btn btn-green">Verify</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="2fa-disable-panel" class="hidden" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <h3>Disable 2FA</h3>
+                                <div class="input-group" style="max-width: 300px;">
+                                    <label>Enter 6-digit code to confirm:</label>
+                                    <div style="display: flex; gap: 10px;">
+                                        <input type="text" id="disable-2fa-code" placeholder="123456" maxlength="6" style="flex: 1;">
+                                        <button id="btn-confirm-disable-2fa" class="btn btn-red">Disable</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="max-width: 600px;">
+                        <div class="card-header">
+                            <span class="card-title">Danger Zone</span>
+                        </div>
+                        <div class="card-body">
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:16px;">Deleting this application will permanently remove all associated users, licenses, and event logs. This action cannot be reversed.</p>
+                            <button id="btn-delete-app" class="btn btn-red">
+                                <i class="fa-solid fa-trash-can"></i> Delete Application
+                            </button>
+                        </div>
+                    </div>
+                </section>
