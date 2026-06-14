@@ -352,6 +352,11 @@ function updateActiveAppDisplay() {
         fetchVariables();
     } else if (activeTab === 'webhooks') {
         fetchWebhooks();
+    } else if (activeTab === 'subscriptions') {
+        fetchSubscriptions();
+    } else if (activeTab === 'tokens') {
+        fetchTokens();
+        populateSubscriptionSelects();
     } else if (activeTab === 'settings') {
         fetch2FAStatus();
     }
@@ -1265,7 +1270,6 @@ if(createVariableForm) {
         e.preventDefault();
         const name = document.getElementById('new-variable-name').value;
         const value = document.getElementById('new-variable-value').value;
-        
         try {
             const response = await fetch('/api/admin/variables', {
                 method: 'POST',

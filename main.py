@@ -300,6 +300,7 @@ def generate_licenses(data: models.LicenseGenerate, username: str = Depends(get_
             "key": key,
             "app_id": data.app_id,
             "duration_days": data.duration_days,
+            "subscription_id": data.subscription_id,
             "is_used": False,
             "used_by": None,
             "expires_at": None,
@@ -388,6 +389,7 @@ def create_user(data: models.UserCreate, username: str = Depends(get_current_adm
         "key": key,
         "app_id": data.app_id,
         "duration_days": data.duration_days,
+        "subscription_id": data.subscription_id,
         "is_used": True,
         "used_by": data.username,
         "expires_at": expiry,
@@ -404,6 +406,7 @@ def create_user(data: models.UserCreate, username: str = Depends(get_current_adm
         "role": "user",
         "app_id": data.app_id,
         "license_key": key,
+        "subscription_id": data.subscription_id,
         "hwid": None,
         "created_at": datetime.utcnow().isoformat()
     }
@@ -483,11 +486,19 @@ def client_register(data: models.ClientRegister):
         }
     )
     
+    # Determine Subscription Level
+    sub_level = 1
+    if lic.get("subscription_id"):
+        sub_doc = db.subscriptions_collection.find_one({"id": lic["subscription_id"], "app_id": data.app_id})
+        if sub_doc:
+            sub_level = sub_doc["level"]
+
     log_event(data.app_id, "Register", f"User '{data.username}' registered using key '{data.license_key}'")
     return {
         "status": "success",
         "message": "Registration successful",
-        "expires_at": expiry
+        "expires_at": expiry,
+        "subscription_level": sub_level
     }
 
 @app.post("/api/client/login")
@@ -521,11 +532,23 @@ def client_login(data: models.ClientLogin):
     elif user["hwid"] != data.hwid:
         raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
         
+    # Determine Subscription Level
+    sub_level = 1
+    if user.get("subscription_id"):
+        sub_doc = db.subscriptions_collection.find_one({"id": user["subscription_id"], "app_id": data.app_id})
+        if sub_doc:
+            sub_level = sub_doc["level"]
+    elif lic.get("subscription_id"):
+        sub_doc = db.subscriptions_collection.find_one({"id": lic["subscription_id"], "app_id": data.app_id})
+        if sub_doc:
+            sub_level = sub_doc["level"]
+
     log_event(data.app_id, "Login", f"User '{data.username}' logged in successfully from HWID '{data.hwid}'")
     return {
         "status": "success",
         "message": "Login successful",
-        "expires_at": lic["expires_at"]
+        "expires_at": lic["expires_at"],
+        "subscription_level": sub_level
     }
 
 @app.post("/api/client/license_login")
@@ -571,11 +594,19 @@ def client_license_login(data: models.ClientLicenseLogin):
         elif lic["hwid"] != data.hwid:
             raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
             
+    # Determine Subscription Level
+    sub_level = 1
+    if lic.get("subscription_id"):
+        sub_doc = db.subscriptions_collection.find_one({"id": lic["subscription_id"], "app_id": data.app_id})
+        if sub_doc:
+            sub_level = sub_doc["level"]
+
     log_event(data.app_id, "License Login", f"License key '{data.license_key}' logged in successfully from HWID '{data.hwid}'")
     return {
         "status": "success",
         "message": "License login successful",
-        "expires_at": lic["expires_at"]
+        "expires_at": lic["expires_at"],
+        "subscription_level": sub_level
     }
 
 # --- VARIABLES ---
@@ -637,6 +668,107 @@ def client_trigger_webhook(data: models.ClientWebhookRequest):
         return {"status": "success", "response": resp.text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- SUBSCRIPTIONS ---
+@app.get("/api/admin/subscriptions")
+def list_subscriptions(app_id: str, username: str = Depends(get_current_admin)):
+    subs = list(db.subscriptions_collection.find({"app_id": app_id}, {"_id": 0}))
+    return subs
+
+@app.post("/api/admin/subscriptions")
+def create_subscription(data: models.SubscriptionCreate, username: str = Depends(get_current_admin)):
+    sub_id = f"SUB-{uuid.uuid4().hex[:8]}"
+    sub_doc = {
+        "id": sub_id,
+        "app_id": data.app_id,
+        "name": data.name,
+        "level": data.level
+    }
+    db.subscriptions_collection.insert_one(sub_doc)
+    log_event(data.app_id, "Subscription Create", f"Created subscription '{data.name}' (Level {data.level})")
+    return {"status": "success", "id": sub_id}
+
+@app.delete("/api/admin/subscriptions/{sub_id}")
+def delete_subscription(sub_id: str, app_id: str, username: str = Depends(get_current_admin)):
+    db.subscriptions_collection.delete_one({"app_id": app_id, "id": sub_id})
+    log_event(app_id, "Subscription Delete", f"Deleted subscription '{sub_id}'")
+    return {"status": "success"}
+
+# --- TOKENS ---
+@app.get("/api/admin/tokens")
+def list_tokens(app_id: str, username: str = Depends(get_current_admin)):
+    tokens = list(db.tokens_collection.find({"app_id": app_id}, {"_id": 0}))
+    return tokens
+
+@app.post("/api/admin/tokens")
+def generate_tokens(data: models.TokenGenerate, username: str = Depends(get_current_admin)):
+    generated_tokens = []
+    now = datetime.utcnow()
+    
+    for _ in range(data.count):
+        token_str = f"TKN-{uuid.uuid4().hex[:12].upper()}"
+        token_doc = {
+            "token": token_str,
+            "app_id": data.app_id,
+            "duration_days": data.duration_days,
+            "subscription_id": data.subscription_id,
+            "is_used": False,
+            "used_by": None,
+            "note": data.note or "",
+            "created_at": now.isoformat()
+        }
+        db.tokens_collection.insert_one(token_doc)
+        generated_tokens.append(token_str)
+        
+    log_event(data.app_id, "Token Generate", f"Generated {data.count} tokens")
+    return {"status": "success", "tokens": generated_tokens}
+
+@app.delete("/api/admin/tokens/{token}")
+def delete_token(token: str, app_id: str, username: str = Depends(get_current_admin)):
+    db.tokens_collection.delete_one({"app_id": app_id, "token": token})
+    log_event(app_id, "Token Delete", f"Deleted token '{token}'")
+    return {"status": "success"}
+
+@app.post("/api/client/redeem")
+def client_redeem_token(data: models.ClientRedeemRequest):
+    user = db.users_collection.find_one({"username": data.username, "app_id": data.app_id})
+    if not user or not db.verify_password(data.password, user["password"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+        
+    if user["hwid"] and user["hwid"] != data.hwid:
+        raise HTTPException(status_code=403, detail="HWID mismatch")
+        
+    token_doc = db.tokens_collection.find_one({"token": data.token, "app_id": data.app_id})
+    if not token_doc:
+        raise HTTPException(status_code=404, detail="Token not found")
+        
+    if token_doc["is_used"]:
+        raise HTTPException(status_code=400, detail="Token has already been used")
+        
+    lic = db.licenses_collection.find_one({"key": user["license_key"]})
+    if not lic:
+        raise HTTPException(status_code=404, detail="User license not found")
+        
+    # Add time
+    current_expiry = lic.get("expires_at")
+    if current_expiry and current_expiry != "Lifetime":
+        exp_time = datetime.fromisoformat(current_expiry)
+        if datetime.utcnow() > exp_time:
+            exp_time = datetime.utcnow() # Reset if already expired
+        new_expiry = (exp_time + timedelta(days=token_doc["duration_days"])).isoformat()
+    else:
+        new_expiry = (datetime.utcnow() + timedelta(days=token_doc["duration_days"])).isoformat()
+        
+    update_data = {"expires_at": new_expiry}
+    if token_doc.get("subscription_id"):
+        update_data["subscription_id"] = token_doc["subscription_id"]
+        db.users_collection.update_one({"username": data.username}, {"$set": {"subscription_id": token_doc["subscription_id"]}})
+        
+    db.licenses_collection.update_one({"key": user["license_key"]}, {"$set": update_data})
+    db.tokens_collection.update_one({"token": data.token}, {"$set": {"is_used": True, "used_by": data.username}})
+    
+    log_event(data.app_id, "Token Redeem", f"User '{data.username}' redeemed token '{data.token}'")
+    return {"status": "success", "message": "Token redeemed successfully", "new_expires_at": new_expiry}
 
 # --- PAGE ROUTING ---
 @app.get("/")

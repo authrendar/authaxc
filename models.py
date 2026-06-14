@@ -17,6 +17,7 @@ class LicenseGenerate(BaseModel):
     app_id: str = Field(...)
     duration_days: int = Field(..., ge=0, description="0 for lifetime, otherwise number of days")
     count: int = Field(default=1, ge=1, le=100, description="Number of keys to generate")
+    subscription_id: Optional[str] = None
     note: Optional[str] = None
 
 class UserCreate(BaseModel):
@@ -24,6 +25,7 @@ class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=20)
     password: str = Field(..., min_length=4)
     duration_days: int = Field(..., ge=0)
+    subscription_id: Optional[str] = None
     note: Optional[str] = None
 
 class ClientRegister(BaseModel):
@@ -65,3 +67,22 @@ class ClientWebhookRequest(BaseModel):
     app_id: str
     name: str
     payload: dict
+
+class SubscriptionCreate(BaseModel):
+    app_id: str
+    name: str = Field(..., min_length=2, max_length=50)
+    level: int = Field(default=1, ge=1)
+
+class TokenGenerate(BaseModel):
+    app_id: str
+    duration_days: int = Field(..., ge=1)
+    subscription_id: Optional[str] = None
+    count: int = Field(default=1, ge=1, le=100)
+    note: Optional[str] = None
+
+class ClientRedeemRequest(BaseModel):
+    app_id: str
+    username: str
+    password: str
+    token: str
+    hwid: str
