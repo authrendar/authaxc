@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis - Admin Control Panel</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    
+    <!-- ================= LOGIN / REGISTER VIEW ================= -->
+    <div id="login-view" class="login-container hidden">
+        <div class="login-box">
+            <div class="login-brand">
+                KeyAuth
+            </div>
+            
+            <form id="login-form">
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label for="username" style="display:block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 500; color: #d1d5db;">Username</label>
+                    <input type="text" id="username" placeholder="Enter username" required autocomplete="off">
+                </div>
+                
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label for="password" style="display:block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 500; color: #d1d5db;">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                
+                <div class="input-group" id="login-2fa-group" style="margin-bottom: 20px; display: none;">
+                    <label for="totp_code" style="display:block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 500; color: #d1d5db;">Authenticator Code (2FA)</label>
+                    <input type="text" id="totp_code" placeholder="123456" autocomplete="off" maxlength="6" pattern="\d*">
+                </div>
+                
+                <button type="submit" id="auth-submit-btn" class="btn btn-blue btn-block" style="padding: 12px;">
+                    Login
+                </button>
+                <div style="text-align: center; margin-top: 15px; font-size: 0.9rem;">
+                    <a href="#" id="toggle-auth-mode" style="color: var(--color-blue); text-decoration: none;">Need an account? Sign up</a>
+                </div>
+            </form>
+            <div id="login-error" class="hidden" style="color: var(--color-red); margin-top: 15px; font-weight: 500; font-size: 0.85rem; text-align: center;"></div>
+        </div>
+    </div>
+
+    <!-- ================= DASHBOARD VIEW ================= -->
+    <div id="dashboard-view" class="dashboard-layout hidden">
+        
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                KeyAuth
+            </div>
+
+            <!-- App Selector -->
+            <div class="sidebar-app-selector">
+                <select id="app-selector" class="form-control" style="font-size: 0.85rem; padding: 8px; background: var(--bg-surface);">
+                    <!-- Dynamic Options -->
+                </select>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-tab="overview">
+                    <i class="fa-solid fa-layer-group"></i> Manage Apps
+                </a>
+                <a href="#" class="nav-item" data-tab="licenses">
+                    <i class="fa-solid fa-key"></i> Licenses
+                </a>
+                <a href="#" class="nav-item" data-tab="users">
+                    <i class="fa-solid fa-user-group"></i> Users
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-ticket"></i> Tokens
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-box-open"></i> Subscriptions
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-regular fa-comments"></i> Chats
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-desktop"></i> Sessions
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-link"></i> Webhooks
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-upload"></i> Files
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-sliders"></i> Variables
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-scale-balanced"></i> Rules
+                </a>
+                <a href="#" class="nav-item" data-tab="logs">
+                    <i class="fa-solid fa-list-ul"></i> Event Logs
+                </a>
+                <a href="#" class="nav-item" data-tab="settings">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </a>
+                <a href="#" class="nav-item" data-tab="web-admins">
+                    <i class="fa-solid fa-user-shield"></i> Web Admins
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-book"></i> Resources
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Panel -->
+        <div class="main-wrapper">
+            
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="search-container">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Search pages...">
+                </div>
+                
+                <div class="top-profile" id="logout-btn">
+                    <div class="profile-avatar">S</div>
+                    <div class="profile-info">
+                        <span class="profile-name" id="admin-display-name">Admin</span>
+                        <span class="profile-role">Tester Subscription</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down" style="font-size:0.7rem; color:var(--text-muted);"></i>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                
+                <!-- Tab content: Overview (Manage Applications) -->
+                <section id="tab-overview" class="tab-content active-content">
+                    
+                    <div class="breadcrumb">
+                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Current Application: <span class="active-app-name-display" style="color:var(--text-muted);">---</span> <span style="color:var(--color-red); margin-left: 8px;">You don't have a subscription! <a href="#" style="color:var(--color-blue);">Upgrade Now.</a></span>
+                    </div>
+
+                    <div class="page-header">
+                        <h1>Manage Applications</h1>
+                        <p>Manage your applications. Applications are the backbone of all the data. <a href="#">Learn More.</a></p>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-block">
+                            <div class="stat-value" id="stat-total-apps">0</div>
+                            <div class="stat-label">Total Apps</div>
+                        </div>
+                        <div class="stat-block">
+                            <div class="stat-value" id="stat-active-apps">0</div>
+                            <div class="stat-label">Active</div>
+                        </div>
+                        <div class="stat-block">
+                            <div class="stat-value">0</div>
+                            <div class="stat-label">Paused</div>
+                        </div>
+                        <div class="stat-block">
+                            <div class="stat-value" id="stat-active-sessions">0</div>
+                            <div class="stat-label">Active Sessions</div>
+                        </div>
+                    </div>
+
+                    <!-- Two Column Layout -->
+                    <div class="overview-grid">
+                        
+                        <!-- Left Column: Credentials -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div style="display:flex; flex-direction:column;">
+                                    <span class="card-title">Application Credentials</span>
+                                    <span style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Simply replace the placeholder code in the example with these.</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom: 24px;">
+                                    <input type="checkbox" id="display-code-snippet" style="width:auto;">
+                                    <label for="display-code-snippet" style="font-size:0.85rem; color:var(--text-muted);">Display Code Snippet</label>
+                                </div>
+
+                                <div class="credential-item">
+                                    <label>Application Name</label>
+                                    <div class="credential-box">
+                                        <span class="credential-value" id="settings-app-name">---</span>
+                                        <i class="fa-regular fa-copy" onclick="copyToClipboard('settings-app-name')"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="credential-item">
+                                    <label>Account Owner ID</label>
+                                    <div class="credential-box">
+                                        <span class="credential-value">Admin-Owner</span>
+                                        <i class="fa-regular fa-copy"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="credential-item">
+                                    <label>Application Secret</label>
+                                    <div class="credential-box">
+                                        <span class="credential-value" id="settings-app-secret">---</span>
+                                        <i class="fa-regular fa-copy" onclick="copyToClipboard('settings-app-secret', true)"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="credential-item">
+                                    <label>Application Version</label>
+                                    <div class="credential-box">
+                                        <span class="credential-value">1.0</span>
+                                        <i class="fa-regular fa-copy"></i>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-orange" style="margin-top:20px; font-weight: 600;">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Application Secret
+                                </button>
+
+                                <div class="notice-box">
+                                    <h4><i class="fa-solid fa-circle-info"></i> Notice!</h4>
+                                    <p>Application secrets are only displayed for users using our older API endpoints. If you're using our newer API (1.3), application secrets are not used!</p>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Right Column: My Applications -->
+                        <div>
+                            <div class="app-list-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:0.95rem;">My Applications</span>
+                                <div class="search-container" style="width:200px; background:var(--bg-main); padding: 4px 10px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" placeholder="Search applications..." style="font-size:0.8rem;">
+                                </div>
+                            </div>
+                            
+                            <div style="background:var(--bg-main); padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 16px; display:flex; justify-content:space-between;">
+                                <span style="font-size:0.85rem; font-weight:600;">All Applications</span>
+                                <i class="fa-solid fa-chevron-down" style="font-size:0.75rem; color:var(--text-muted);"></i>
+                            </div>
+
+                            <button id="btn-create-app-modal" class="btn btn-blue btn-block" style="margin-bottom: 24px; font-weight: 600; padding: 12px;">
+                                <i class="fa-solid fa-plus"></i> Create Application
+                            </button>
+
+                            <div id="applications-list-container">
+                                <!-- App cards injected here -->
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- Tab content: Licenses -->
+                <section id="tab-licenses" class="tab-content">
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Licenses</h1>
+                            <p>Manage all generated license keys.</p>
+                        </div>
+                        <button id="btn-generate-keys-modal" class="btn btn-blue">
+                            <i class="fa-solid fa-plus"></i> Generate Keys
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>License Key</th>
+                                    <th>Used By</th>
+                                    <th>Duration</th>
+                                    <th>Device (HWID)</th>
+                                    <th>Expires At</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="license-table-body">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Tab content: Users -->
+                <section id="tab-users" class="tab-content">
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Users</h1>
+                            <p>Manage direct application users.</p>
+                        </div>
+                        <button id="btn-create-user-modal" class="btn btn-blue">
+                            <i class="fa-solid fa-user-plus"></i> Create User
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Associated License</th>
+                                    <th>Device (HWID)</th>
+                                    <th>Created At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Tab content: Logs -->
+                <section id="tab-logs" class="tab-content">
+                    <div class="page-header">
+                        <h1>Event Logs</h1>
+                        <p>Track application events in real-time.</p>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Event Type</th>
+                                    <th>Description / Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-table-body">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Tab content: Settings -->
+                <section id="tab-settings" class="tab-content">
+                    <div class="page-header">
+                        <h1>Settings</h1>
+                        <p>Application specific settings.</p>
+                    </div>
+                    
+                    <div class="card" style="max-width: 600px;">
+                        <div class="card-header">
+                            <span class="card-title">Danger Zone</span>
+                        </div>
+                        <div class="card-body">
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:16px;">Deleting this application will permanently remove all associated users, licenses, and event logs. This action cannot be reversed.</p>
+                            <button id="btn-delete-app" class="btn btn-red">
+                                <i class="fa-solid fa-trash-can"></i> Delete Application
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Tab content: Web Admins -->
+                <section id="tab-web-admins" class="tab-content hidden">
+                    <div class="breadcrumb">
+                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Platform Admins</a> <i class="fa-solid fa-chevron-right"></i> Manage Web Admins
+                    </div>
+
+                    <div class="page-header">
+                        <h1>Web Admins Management</h1>
+                        <p>View and manage all administrators who have access to this control panel.</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Registered Admins</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Created At</th>
+                                            <th>Role</th>
+                                            <th style="width: 100px; text-align: center;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admins-table-body">
+                                        <!-- Admins will be populated here -->
+                                    </tbody>
+                                </table>
+                                <div id="no-admins-msg" class="empty-state hidden">
+                                    <p>No other admins found.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Tab content: Settings -->
+                <section id="tab-settings" class="tab-content hidden">
+                    <div class="breadcrumb">
+                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Platform Admins</a> <i class="fa-solid fa-chevron-right"></i> Settings
+                    </div>
+
+                    <div class="page-header">
+                        <h1>Security Settings</h1>
+                        <p>Manage your account security and two-factor authentication.</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Two-Factor Authentication (2FA)</h2>
+                        </div>
+                        <div class="card-body">
+                            <p style="color: var(--text-muted); margin-bottom: 20px;">Protect your admin account by requiring an authenticator code when logging in.</p>
+                            
+                            <div id="2fa-status-panel">
+                                <p id="2fa-status-text" style="font-weight: 500; margin-bottom: 15px;">Checking status...</p>
+                                <button id="btn-enable-2fa" class="btn btn-blue hidden">Enable 2FA</button>
+                                <button id="btn-disable-2fa" class="btn btn-red hidden">Disable 2FA</button>
+                            </div>
+                            
+                            <div id="2fa-setup-panel" class="hidden" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <h3>Setup Authenticator</h3>
+                                <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 0.9rem;">Scan this QR code with Google Authenticator or Authy.</p>
+                                <img id="2fa-qr-code" src="" alt="QR Code" style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                                
+                                <div class="input-group" style="max-width: 300px;">
+                                    <label>Enter 6-digit code to verify:</label>
+                                    <div style="display: flex; gap: 10px;">
+                                        <input type="text" id="setup-2fa-code" placeholder="123456" maxlength="6" style="flex: 1;">
+                                        <button id="btn-verify-2fa" class="btn btn-green">Verify</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="2fa-disable-panel" class="hidden" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <h3>Disable 2FA</h3>
+                                <div class="input-group" style="max-width: 300px;">
+                                    <label>Enter 6-digit code to confirm:</label>
+                                    <div style="display: flex; gap: 10px;">
+                                        <input type="text" id="disable-2fa-code" placeholder="123456" maxlength="6" style="flex: 1;">
+                                        <button id="btn-confirm-disable-2fa" class="btn btn-red">Disable</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Create App Modal -->
+    <div id="create-app-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Application</h3>
+                <button id="btn-close-app-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="create-app-form">
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom:8px; font-size:0.85rem; font-weight:600; color:var(--text-muted);">Application Name</label>
+                    <input type="text" id="new-app-name" placeholder="e.g. Bypasses, SpamBot" required autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-blue btn-block">Create App</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="create-user-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create User</h3>
+                <button id="btn-close-user-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="create-user-form">
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Username</label>
+                    <input type="text" id="new-username" required autocomplete="off">
+                </div>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Password</label>
+                    <input type="password" id="new-password" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Duration</label>
+                    <select id="user-duration" required>
+                        <option value="1">1 Day</option>
+                        <option value="7">7 Days</option>
+                        <option value="30" selected>30 Days</option>
+                        <option value="0">Lifetime</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-blue btn-block">Create User</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generate Keys Modal -->
+    <div id="generate-keys-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Generate License Keys</h3>
+                <button id="btn-close-generate-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="generate-form">
+                <div style="display:flex; gap:16px; margin-bottom: 15px;">
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Duration</label>
+                        <select id="duration" required>
+                            <option value="1">1 Day</option>
+                            <option value="7">7 Days</option>
+                            <option value="30" selected>30 Days</option>
+                            <option value="0">Lifetime</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Key Count</label>
+                        <input type="number" id="count" value="1" min="1" max="100" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-blue btn-block">Generate Keys</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification system toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
