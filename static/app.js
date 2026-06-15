@@ -1819,3 +1819,6 @@ document.addEventListener('click', async (e) => {
         }
     }
 });
+
+// Initialize the application
+checkAuth();
