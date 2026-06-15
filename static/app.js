@@ -824,6 +824,13 @@ if (logoutBtn) {
 
 if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
+        const i = refreshBtn.querySelector('i');
+        if (i) i.classList.add('fa-spin');
+        updateActiveAppDisplay();
+        setTimeout(() => { if (i) i.classList.remove('fa-spin'); }, 500);
+    });
+
+    refreshBtn.addEventListener('click', () => {
         const activeNav = document.querySelector('.nav-item.active');
         const activeTab = activeNav ? activeNav.getAttribute('data-tab') : 'overview';
         if (activeTab === 'overview') {
@@ -1048,22 +1055,21 @@ generateForm.addEventListener('submit', async (e) => {
 // Copy all generated keys button
 if (copyAllBtn) {
     copyAllBtn.addEventListener('click', () => {
-        const keys = Array.from(generatedKeysList.querySelectorAll('li span')).map(span => span.textContent);
-        navigator.clipboard.writeText(keys.join('\n'));
-        showToast('All license keys copied to clipboard!');
+        const lines = Array.from(generatedKeysList.children).map(li => li.textContent);
+        if (lines.length > 0) {
+            navigator.clipboard.writeText(lines.join('\n'));
+            showToast('All keys copied!');
+        }
     });
 }
 
 // Toggle Client Secret visibility
 if (btnToggleSecret) {
     btnToggleSecret.addEventListener('click', () => {
-        const isShowing = btnToggleSecret.classList.toggle('showing-secret');
-        if (isShowing) {
-            btnToggleSecret.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Hide';
-            settingsAppSecret.style.webkitTextSecurity = 'none';
-        } else {
-            btnToggleSecret.innerHTML = '<i class="fa-solid fa-eye"></i> Show';
+        if(settingsAppSecret.style.webkitTextSecurity === 'none') {
             settingsAppSecret.style.webkitTextSecurity = 'disc';
+        } else {
+            settingsAppSecret.style.webkitTextSecurity = 'none';
         }
     });
 }
