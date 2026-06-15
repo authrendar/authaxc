@@ -13,6 +13,7 @@ from typing import List
 from fastapi import FastAPI, Request, Response, HTTPException, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -23,6 +24,20 @@ load_dotenv()
 
 # Initialize FastAPI
 app = FastAPI(title="Anik X Cheats Licensing System")
+
+templates = Jinja2Templates(directory="static")
+
+import traceback
+from fastapi.responses import JSONResponse
+@app.middleware("http")
+async def catch_exceptions_middleware(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        print("FATAL ERROR IN REQUEST:")
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
 
 # Enable CORS
 app.add_middleware(
@@ -1006,7 +1021,7 @@ def health_check():
 
 @app.get("/dashboard")
 def dashboard_page(request: Request):
-    return FileResponse("static/dashboard.html")
+    return templates.TemplateResponse("dashboard.html", {"request": request})
 
 @app.get("/login")
 def login_redirect(request: Request):
