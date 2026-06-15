@@ -27,6 +27,8 @@ class UserCreate(BaseModel):
     duration_days: int = Field(..., ge=0)
     subscription_id: Optional[str] = None
     note: Optional[str] = None
+    hwid_lock_enabled: bool = True
+
 
 class ClientRegister(BaseModel):
     app_id: str = Field(...)

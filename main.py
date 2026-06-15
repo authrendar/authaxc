@@ -458,6 +458,7 @@ def create_user(data: models.UserCreate, username: str = Depends(get_current_adm
         "is_banned": False,
         "note": data.note or f"Auto-generated for user {data.username}",
         "hwid": None,
+        "hwid_lock_enabled": data.hwid_lock_enabled,
         "created_at": datetime.utcnow().isoformat()
     }
     db.licenses_collection.insert_one(lic_doc)
@@ -470,6 +471,7 @@ def create_user(data: models.UserCreate, username: str = Depends(get_current_adm
         "license_key": key,
         "subscription_id": data.subscription_id,
         "hwid": None,
+        "hwid_lock_enabled": data.hwid_lock_enabled,
         "created_at": datetime.utcnow().isoformat()
     }
     db.users_collection.insert_one(user_doc)
@@ -593,11 +595,12 @@ def client_login(data: models.ClientLogin):
         pass # Placeholder for client dev mode check
         
     if rules.get("hwid_lock", True):
-        if not user.get("hwid"):
-            db.users_collection.update_one({"username": data.username, "app_id": data.app_id}, {"$set": {"hwid": data.hwid}})
-            db.licenses_collection.update_one({"key": user["license_key"]}, {"$set": {"hwid": data.hwid}})
-        elif user["hwid"] != data.hwid:
-            raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
+        if user.get("hwid_lock_enabled", True) and lic.get("hwid_lock_enabled", True):
+            if not user.get("hwid"):
+                db.users_collection.update_one({"username": data.username, "app_id": data.app_id}, {"$set": {"hwid": data.hwid}})
+                db.licenses_collection.update_one({"key": user["license_key"]}, {"$set": {"hwid": data.hwid}})
+            elif user["hwid"] != data.hwid:
+                raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
         
     # Determine Subscription Level
     sub_level = 1
