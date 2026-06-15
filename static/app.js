@@ -544,6 +544,7 @@ function renderUsersTable() {
                 <td style="font-weight: 600;">${user.username}</td>
                 <td class="license-key-cell" style="font-size:0.85rem;">${user.license_key}</td>
                 <td style="font-family: var(--font-mono); font-size: 0.8rem;">${user.hwid || '<span class="text-muted">—</span>'}</td>
+                <td>${user.hwid_lock_enabled ? '<span class="text-emerald">Locked</span>' : '<span class="text-muted">Unlocked</span>'}</td>
                 <td>${new Date(user.created_at).toLocaleDateString()}</td>
                 <td><span class="badge badge-used">Registered</span></td>
                 <td>
@@ -936,6 +937,7 @@ createUserForm.addEventListener('submit', async (e) => {
     const password = newPassword.value;
     const duration = parseInt(userDuration.value);
     const note = userNote ? userNote.value.trim() : '';
+    const hwidLockEnabled = document.getElementById('user-hwid-lock') ? document.getElementById('user-hwid-lock').value === 'true' : true;
     
     try {
         const subscriptionId = document.getElementById('user-subscription-id')?.value || null;
@@ -948,7 +950,8 @@ createUserForm.addEventListener('submit', async (e) => {
                 password,
                 duration_days: duration,
                 subscription_id: subscriptionId,
-                note
+                note,
+                hwid_lock_enabled: hwidLockEnabled
             })
         });
         
