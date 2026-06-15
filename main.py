@@ -1021,7 +1021,7 @@ def health_check():
 
 @app.get("/dashboard")
 def dashboard_page(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="dashboard.html", context={})
 
 @app.get("/login")
 def login_redirect(request: Request):
