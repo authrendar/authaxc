@@ -135,7 +135,21 @@
 
             <!-- Main Content Area -->
             <main class="main-content">
-                <div id="dynamic-tab-content"></div>
+                {% include 'tabs/overview.html' %}
+                {% include 'tabs/licenses.html' %}
+                {% include 'tabs/users.html' %}
+                {% include 'tabs/tokens.html' %}
+                {% include 'tabs/subscriptions.html' %}
+                {% include 'tabs/chats.html' %}
+                {% include 'tabs/sessions.html' %}
+                {% include 'tabs/webhooks.html' %}
+                {% include 'tabs/files.html' %}
+                {% include 'tabs/variables.html' %}
+                {% include 'tabs/rules.html' %}
+                {% include 'tabs/logs.html' %}
+                {% include 'tabs/settings.html' %}
+                {% include 'tabs/web-admins.html' %}
+                {% include 'tabs/resources.html' %}
             </main>
         </div>
     </div>

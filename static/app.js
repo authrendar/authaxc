@@ -167,41 +167,6 @@ async function switchTab(tabId, updateHash = true) {
     document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
     let navItem = document.querySelector(`[data-tab="${tabId}"]`);
     if(navItem) navItem.parentElement.classList.add('active');
-    
-    const container = document.getElementById('dynamic-tab-content');
-    if (!container) return; // Prevent error if running on wrong page
-    
-    try {
-        const response = await fetch(`/static/tabs/${tabId}.html`);
-        if (response.ok) {
-            container.innerHTML = await response.text();
-            
-            // Wait for DOM update
-            setTimeout(() => {
-                if (tabId === 'overview') loadOverview();
-                else if (tabId === 'apps') loadApps();
-                else if (tabId === 'licenses') loadLicenses();
-                else if (tabId === 'users') loadUsers();
-                else if (tabId === 'logs') loadLogs();
-                else if (tabId === 'webhooks') loadWebhooks();
-                else if (tabId === 'variables') loadVariables();
-                else if (tabId === 'subscriptions') loadSubscriptions();
-                else if (tabId === 'tokens') loadTokens();
-                else if (tabId === 'sessions') loadSessions();
-                else if (tabId === 'files') loadFiles();
-                else if (tabId === 'chats') loadChats();
-                else if (tabId === 'resources') loadResources();
-            }, 50);
-            
-        } else {
-            container.innerHTML = `<div class="error">Failed to load tab content (404)</div>`;
-        }
-    } catch (e) {
-        console.error(e);
-        container.innerHTML = `<div class="error">Failed to load tab content</div>`;
-    }
-    
-    /*
 
     navItems.forEach(item => {
         if (item.getAttribute('data-tab') === tabId) {
