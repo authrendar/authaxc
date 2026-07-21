@@ -11,12 +11,22 @@
 #pragma comment(lib, "bcrypt.lib")
 
 // API Host and Port Configuration
-// In production: Change HOST to your Render domain (e.g. "your-app.onrender.com") and PORT to 443
 const std::string API_HOST = "auth.anikxcheatx.com";
 const int API_PORT = 80;
 const std::string APP_ID = "YOUR_APP_ID"; // Replace with App ID from dashboard
 
-// Helper function to hash text using SHA-256 via Windows Cryptography API (CNG)
+struct UserData {
+    std::string username;
+    std::string hwid;
+    std::string license_key;
+    std::string expires_at;
+    int subscription_level = 1;
+    std::string created_at;
+    bool is_authenticated = false;
+};
+
+UserData g_User;
+
 std::string CalculateSHA256(const std::string& input) {
     BCRYPT_ALG_HANDLE hAlg = NULL;
     BCRYPT_HASH_HANDLE hHash = NULL;
@@ -33,9 +43,7 @@ std::string CalculateSHA256(const std::string& input) {
                     if (BCryptHashData(hHash, (PBYTE)input.c_str(), input.length(), 0) >= 0) {
                         if (BCryptFinishHash(hHash, hashVal.data(), cbHash, 0) >= 0) {
                             std::stringstream ss;
-                            for (BYTE b : hashVal) {
-                                ss << std::hex << std::setw(2) << std::setfill('0') << (int)b;
-                            }
+                            for (BYTE b : hashVal) ss << std::hex << std::setw(2) << std::setfill('0') << (int)b;
                             hashHex = ss.str();
                         }
                     }
@@ -49,7 +57,6 @@ std::string CalculateSHA256(const std::string& input) {
     return hashHex;
 }
 
-// Generate unique hardware ID using CPU info / local Volume info
 std::string GetHWID() {
     DWORD volumeSerial = 0;
     GetVolumeInformationW(L"C:\\", NULL, 0, &volumeSerial, NULL, NULL, NULL, 0);
@@ -67,9 +74,8 @@ std::string GetHWID() {
     return CalculateSHA256(ss.str());
 }
 
-// Send HTTP POST request to API using WinINet API
 std::string SendPostRequest(const std::string& path, const std::string& jsonPayload) {
-    HINTERNET hSession = InternetOpenA("AnikX", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    HINTERNET hSession = InternetOpenA("AegisClient", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
     if (!hSession) return "{\"detail\":\"Failed to open internet session.\"}";
 
     HINTERNET hConnect = InternetConnectA(hSession, API_HOST.c_str(), API_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
@@ -79,9 +85,7 @@ std::string SendPostRequest(const std::string& path, const std::string& jsonPayl
     }
 
     DWORD flags = INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE;
-    if (API_PORT == 443) {
-        flags |= INTERNET_FLAG_SECURE;
-    }
+    if (API_PORT == 443) flags |= INTERNET_FLAG_SECURE;
 
     HINTERNET hRequest = HttpOpenRequestA(hConnect, "POST", path.c_str(), NULL, NULL, NULL, flags, 0);
     if (!hRequest) {
@@ -111,11 +115,18 @@ std::string SendPostRequest(const std::string& path, const std::string& jsonPayl
     return response;
 }
 
-// Extract values from JSON response keys (simple validation helper)
 std::string GetJSONValue(const std::string& json, const std::string& key) {
     std::string searchKey = "\"" + key + "\":\"";
     size_t pos = json.find(searchKey);
-    if (pos == std::string::npos) return "";
+    if (pos == std::string::npos) {
+        std::string searchKeyNum = "\"" + key + "\":";
+        pos = json.find(searchKeyNum);
+        if (pos == std::string::npos) return "";
+        size_t start = pos + searchKeyNum.length();
+        size_t end = json.find_first_of(",}", start);
+        if (end == std::string::npos) return "";
+        return json.substr(start, end - start);
+    }
     
     size_t start = pos + searchKey.length();
     size_t end = json.find("\"", start);
@@ -124,137 +135,102 @@ std::string GetJSONValue(const std::string& json, const std::string& key) {
     return json.substr(start, end - start);
 }
 
-void Register() {
+void ParseAndSetUserData(const std::string& response, const std::string& defaultUser, const std::string& defaultKey) {
+    g_User.username = GetJSONValue(response, "username");
+    if (g_User.username.empty()) g_User.username = defaultUser;
+
+    g_User.hwid = GetJSONValue(response, "hwid");
+    if (g_User.hwid.empty()) g_User.hwid = GetHWID();
+
+    g_User.license_key = GetJSONValue(response, "license_key");
+    if (g_User.license_key.empty()) g_User.license_key = defaultKey;
+
+    g_User.expires_at = GetJSONValue(response, "expires_at");
+    if (g_User.expires_at.empty()) g_User.expires_at = "Lifetime";
+
+    std::string subStr = GetJSONValue(response, "subscription_level");
+    g_User.subscription_level = subStr.empty() ? 1 : std::atoi(subStr.c_str());
+
+    g_User.created_at = GetJSONValue(response, "created_at");
+    g_User.is_authenticated = true;
+}
+
+void PrintUserInfo() {
+    if (!g_User.is_authenticated) return;
+    std::cout << "\n================ USER INFORMATION ================\n";
+    std::cout << " Username           : " << g_User.username << "\n";
+    std::cout << " Hardware ID (HWID) : " << g_User.hwid << "\n";
+    std::cout << " License Key        : " << g_User.license_key << "\n";
+    std::cout << " Expiry Date        : " << g_User.expires_at << "\n";
+    std::cout << " Subscription Level : Level " << g_User.subscription_level << "\n";
+    std::cout << "==================================================\n\n";
+}
+
+bool Register() {
     std::string username, password, key;
-    std::cout << "Enter username: ";
-    std::cin >> username;
-    std::cout << "Enter password: ";
-    std::cin >> password;
-    std::cout << "Enter license key: ";
-    std::cin >> key;
+    std::cout << "Enter username: "; std::cin >> username;
+    std::cout << "Enter password: "; std::cin >> password;
+    std::cout << "Enter license key: "; std::cin >> key;
 
     std::stringstream payload;
     payload << "{\"app_id\":\"" << APP_ID << "\",\"username\":\"" << username << "\",\"password\":\"" << password 
             << "\",\"license_key\":\"" << key << "\",\"hwid\":\"" << GetHWID() << "\"}";
 
-    std::cout << "\n[*] Sending registration request...\n";
     std::string response = SendPostRequest("/api/client/register", payload.str());
-    
-    std::string status = GetJSONValue(response, "status");
-    if (status == "success") {
-        std::cout << "[+] Registration Successful! Expiry: " << GetJSONValue(response, "expires_at") << "\n";
-    } else {
-        std::string detail = GetJSONValue(response, "detail");
-        if (detail.empty()) detail = response;
-        std::cout << "[-] Registration Failed: " << detail << "\n";
+    if (GetJSONValue(response, "status") == "success") {
+        std::cout << "[+] Registration Successful!\n";
+        ParseAndSetUserData(response, username, key);
+        PrintUserInfo();
+        return true;
     }
+    std::cout << "[-] Registration Failed.\n";
+    return false;
 }
 
 bool Login() {
     std::string username, password;
-    std::cout << "Enter username: ";
-    std::cin >> username;
-    std::cout << "Enter password: ";
-    std::cin >> password;
+    std::cout << "Enter username: "; std::cin >> username;
+    std::cout << "Enter password: "; std::cin >> password;
 
     std::stringstream payload;
     payload << "{\"app_id\":\"" << APP_ID << "\",\"username\":\"" << username << "\",\"password\":\"" << password 
             << "\",\"hwid\":\"" << GetHWID() << "\"}";
 
-    std::cout << "\n[*] Sending login request...\n";
     std::string response = SendPostRequest("/api/client/login", payload.str());
-    
-    std::string status = GetJSONValue(response, "status");
-    if (status == "success") {
+    if (GetJSONValue(response, "status") == "success") {
         std::cout << "[+] Login Successful!\n";
-        std::cout << "[+] Expiry: " << GetJSONValue(response, "expires_at") << "\n";
+        ParseAndSetUserData(response, username, "");
+        PrintUserInfo();
         return true;
-    } else {
-        std::string detail = GetJSONValue(response, "detail");
-        if (detail.empty()) detail = response;
-        std::cout << "[-] Login Failed: " << detail << "\n";
-        return false;
     }
+    std::cout << "[-] Login Failed.\n";
+    return false;
 }
 
 bool LoginByLicense() {
     std::string key;
-    std::cout << "Enter your License Key: ";
-    std::cin >> key;
+    std::cout << "Enter your License Key: "; std::cin >> key;
 
     std::stringstream payload;
     payload << "{\"app_id\":\"" << APP_ID << "\",\"license_key\":\"" << key << "\",\"hwid\":\"" << GetHWID() << "\"}";
 
-    std::cout << "\n[*] Sending license login request...\n";
     std::string response = SendPostRequest("/api/client/license_login", payload.str());
-    
-    std::string status = GetJSONValue(response, "status");
-    if (status == "success") {
+    if (GetJSONValue(response, "status") == "success") {
         std::cout << "[+] License Login Successful!\n";
-        std::cout << "[+] Expiry: " << GetJSONValue(response, "expires_at") << "\n";
+        ParseAndSetUserData(response, "Key-Only", key);
+        PrintUserInfo();
         return true;
-    } else {
-        std::string detail = GetJSONValue(response, "detail");
-        if (detail.empty()) detail = response;
-        std::cout << "[-] License Login Failed: " << detail << "\n";
-        return false;
     }
+    std::cout << "[-] License Login Failed.\n";
+    return false;
 }
 
 int main() {
-    std::cout << "=== Anik X Cheats AUTHENTICATION CLIENT (C++) ===\n";
+    std::cout << "=== AEGIS AUTHENTICATION CLIENT (C++) ===\n";
     std::cout << "[DEBUG] HWID: " << GetHWID() << "\n\n";
 
-    if (APP_ID == "YOUR_APP_ID") {
-        std::cout << "[WARNING] Please configure your APP_ID at the top of the file before testing!\n";
-        std::cout << "------------------------------------------------------------\n";
-    }
-
-    while (true) {
-        std::cout << "Choose Authentication Method:\n";
-        std::cout << "1. Username & Password Auth (Register/Login)\n";
-        std::cout << "2. License Key Only Auth (Direct License Login)\n";
-        std::cout << "3. Exit\n";
-        std::cout << "Select mode (1-3): ";
-        int mode;
-        std::cin >> mode;
-
-        if (mode == 1) {
-            std::cout << "\n--- USERNAME & PASSWORD AUTH ---\n";
-            std::cout << "1. Register Account\n";
-            std::cout << "2. Login\n";
-            std::cout << "Select option (1-2): ";
-            int choice;
-            std::cin >> choice;
-
-            if (choice == 1) {
-                Register();
-                std::cout << "----------------------------------------\n";
-            } else if (choice == 2) {
-                if (Login()) {
-                    std::cout << "\n[*] Starting protected application module...\n";
-                    system("pause");
-                    break;
-                } else {
-                    std::cout << "[*] Access Denied.\n";
-                }
-                std::cout << "----------------------------------------\n";
-            }
-        } else if (mode == 2) {
-            std::cout << "\n--- LICENSE KEY ONLY AUTH ---\n";
-            if (LoginByLicense()) {
-                std::cout << "\n[*] Starting protected application module...\n";
-                system("pause");
-                break;
-            } else {
-                std::cout << "[*] Access Denied.\n";
-            }
-            std::cout << "----------------------------------------\n";
-        } else if (mode == 3) {
-            break;
-        } else {
-            std::cout << "[-] Invalid choice. Try again.\n\n";
-        }
+    if (Login()) {
+        std::cout << "[*] Running application...\n";
     }
     return 0;
 }

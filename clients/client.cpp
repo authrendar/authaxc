@@ -11,10 +11,23 @@
 #pragma comment(lib, "bcrypt.lib")
 
 // API Host and Port Configuration
-// In production: Change HOST to your Render domain (e.g. "your-app.onrender.com") and PORT to 443
-const std::string API_HOST = "localhost";
-const int API_PORT = 8000;
+const std::string API_HOST = "auth.anikxcheatx.com";
+const int API_PORT = 80;
 const std::string APP_ID = "YOUR_APP_ID"; // Replace with App ID from dashboard
+
+// User Information Structure for C++ / ImGui
+struct UserData {
+    std::string username;
+    std::string hwid;
+    std::string license_key;
+    std::string expires_at;
+    int subscription_level = 1;
+    std::string created_at;
+    bool is_authenticated = false;
+};
+
+// Global User Object
+UserData g_User;
 
 // Helper function to hash text using SHA-256 via Windows Cryptography API (CNG)
 std::string CalculateSHA256(const std::string& input) {
@@ -111,11 +124,20 @@ std::string SendPostRequest(const std::string& path, const std::string& jsonPayl
     return response;
 }
 
-// Extract values from JSON response keys (simple validation helper)
+// Extract values from JSON response keys
 std::string GetJSONValue(const std::string& json, const std::string& key) {
     std::string searchKey = "\"" + key + "\":\"";
     size_t pos = json.find(searchKey);
-    if (pos == std::string::npos) return "";
+    if (pos == std::string::npos) {
+        // Try non-string values (e.g. numbers)
+        std::string searchKeyNum = "\"" + key + "\":";
+        pos = json.find(searchKeyNum);
+        if (pos == std::string::npos) return "";
+        size_t start = pos + searchKeyNum.length();
+        size_t end = json.find_first_of(",}", start);
+        if (end == std::string::npos) return "";
+        return json.substr(start, end - start);
+    }
     
     size_t start = pos + searchKey.length();
     size_t end = json.find("\"", start);
@@ -124,7 +146,38 @@ std::string GetJSONValue(const std::string& json, const std::string& key) {
     return json.substr(start, end - start);
 }
 
-void Register() {
+void ParseAndSetUserData(const std::string& response, const std::string& defaultUser, const std::string& defaultKey) {
+    g_User.username = GetJSONValue(response, "username");
+    if (g_User.username.empty()) g_User.username = defaultUser;
+
+    g_User.hwid = GetJSONValue(response, "hwid");
+    if (g_User.hwid.empty()) g_User.hwid = GetHWID();
+
+    g_User.license_key = GetJSONValue(response, "license_key");
+    if (g_User.license_key.empty()) g_User.license_key = defaultKey;
+
+    g_User.expires_at = GetJSONValue(response, "expires_at");
+    if (g_User.expires_at.empty()) g_User.expires_at = "Lifetime";
+
+    std::string subStr = GetJSONValue(response, "subscription_level");
+    g_User.subscription_level = subStr.empty() ? 1 : std::atoi(subStr.c_str());
+
+    g_User.created_at = GetJSONValue(response, "created_at");
+    g_User.is_authenticated = true;
+}
+
+void PrintUserInfo() {
+    if (!g_User.is_authenticated) return;
+    std::cout << "\n================ USER INFORMATION ================\n";
+    std::cout << " Username           : " << g_User.username << "\n";
+    std::cout << " Hardware ID (HWID) : " << g_User.hwid << "\n";
+    std::cout << " License Key        : " << g_User.license_key << "\n";
+    std::cout << " Expiry Date        : " << g_User.expires_at << "\n";
+    std::cout << " Subscription Level : Level " << g_User.subscription_level << "\n";
+    std::cout << "==================================================\n\n";
+}
+
+bool Register() {
     std::string username, password, key;
     std::cout << "Enter username: ";
     std::cin >> username;
@@ -142,11 +195,15 @@ void Register() {
     
     std::string status = GetJSONValue(response, "status");
     if (status == "success") {
-        std::cout << "[+] Registration Successful! Expiry: " << GetJSONValue(response, "expires_at") << "\n";
+        std::cout << "[+] Registration Successful!\n";
+        ParseAndSetUserData(response, username, key);
+        PrintUserInfo();
+        return true;
     } else {
         std::string detail = GetJSONValue(response, "detail");
         if (detail.empty()) detail = response;
         std::cout << "[-] Registration Failed: " << detail << "\n";
+        return false;
     }
 }
 
@@ -167,7 +224,8 @@ bool Login() {
     std::string status = GetJSONValue(response, "status");
     if (status == "success") {
         std::cout << "[+] Login Successful!\n";
-        std::cout << "[+] Expiry: " << GetJSONValue(response, "expires_at") << "\n";
+        ParseAndSetUserData(response, username, "");
+        PrintUserInfo();
         return true;
     } else {
         std::string detail = GetJSONValue(response, "detail");
@@ -191,7 +249,8 @@ bool LoginByLicense() {
     std::string status = GetJSONValue(response, "status");
     if (status == "success") {
         std::cout << "[+] License Login Successful!\n";
-        std::cout << "[+] Expiry: " << GetJSONValue(response, "expires_at") << "\n";
+        ParseAndSetUserData(response, "Key-Only", key);
+        PrintUserInfo();
         return true;
     } else {
         std::string detail = GetJSONValue(response, "detail");

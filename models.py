@@ -8,7 +8,7 @@ class AdminLogin(BaseModel):
 
 class AdminRegister(BaseModel):
     username: str = Field(..., min_length=3, max_length=20)
-    password: str = Field(..., min_length=4)
+    password: str = Field(..., min_length=1)
 
 class AppCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
@@ -23,17 +23,15 @@ class LicenseGenerate(BaseModel):
 class UserCreate(BaseModel):
     app_id: str = Field(...)
     username: str = Field(..., min_length=3, max_length=20)
-    password: str = Field(..., min_length=4)
+    password: str = Field(..., min_length=1)
     duration_days: int = Field(..., ge=0)
     subscription_id: Optional[str] = None
     note: Optional[str] = None
-    hwid_lock_enabled: bool = True
-
 
 class ClientRegister(BaseModel):
     app_id: str = Field(...)
     username: str = Field(..., min_length=3, max_length=20)
-    password: str = Field(..., min_length=4)
+    password: str = Field(..., min_length=1)
     license_key: str = Field(...)
     hwid: str = Field(...)
 

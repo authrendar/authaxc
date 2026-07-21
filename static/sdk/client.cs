@@ -5,19 +5,30 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using Microsoft.Win32;
 
-namespace AnikXClient
+namespace AegisClient
 {
+    public class UserInfo
+    {
+        public string Username { get; set; } = "";
+        public string HWID { get; set; } = "";
+        public string LicenseKey { get; set; } = "";
+        public string ExpiresAt { get; set; } = "";
+        public int SubscriptionLevel { get; set; } = 1;
+        public string CreatedAt { get; set; } = "";
+    }
+
     class Program
     {
-        // FastAPI Server base URL (Change this to your Render URL in production)
         private static readonly string BaseUrl = "http://auth.anikxcheatx.com";
-        private static readonly string AppId = "YOUR_APP_ID"; // Replace with App ID from dashboard
+        private static readonly string AppId = "YOUR_APP_ID";
         private static readonly HttpClient Client = new HttpClient();
+
+        public static UserInfo CurrentUser = null;
 
         static async Task Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            Console.WriteLine("=== Anik X Cheats AUTHENTICATION CLIENT (C#) ===");
+            Console.WriteLine("=== AEGIS AUTHENTICATION CLIENT (C#) ===");
             Console.WriteLine($"[DEBUG] Local HWID: {GetHWID()}\n");
 
             if (AppId == "YOUR_APP_ID")
@@ -52,7 +63,11 @@ namespace AnikXClient
                         Console.Write("Enter license key: ");
                         string key = Console.ReadLine()?.Trim();
 
-                        await RegisterUser(user, pwd, key);
+                        if (await RegisterUser(user, pwd, key))
+                        {
+                            PrintUserInfo();
+                            break;
+                        }
                         Console.WriteLine(new string('-', 40));
                     }
                     else if (subChoice == "2")
@@ -65,6 +80,7 @@ namespace AnikXClient
                         if (await LoginUser(user, pwd))
                         {
                             Console.WriteLine("[*] Access Granted. Starting application...");
+                            PrintUserInfo();
                             break;
                         }
                         else
@@ -83,6 +99,7 @@ namespace AnikXClient
                     if (await LoginByLicense(key))
                     {
                         Console.WriteLine("[*] Access Granted. Starting application...");
+                        PrintUserInfo();
                         break;
                     }
                     else
@@ -103,6 +120,18 @@ namespace AnikXClient
             }
         }
 
+        public static void PrintUserInfo()
+        {
+            if (CurrentUser == null) return;
+            Console.WriteLine("\n================ USER INFORMATION ================");
+            Console.WriteLine($" Username           : {CurrentUser.Username}");
+            Console.WriteLine($" Hardware ID (HWID) : {CurrentUser.HWID}");
+            Console.WriteLine($" License Key        : {CurrentUser.LicenseKey}");
+            Console.WriteLine($" Expiry Date        : {CurrentUser.ExpiresAt}");
+            Console.WriteLine($" Subscription Level : Level {CurrentUser.SubscriptionLevel}");
+            Console.WriteLine("==================================================\n");
+        }
+
         private static string GetHWID()
         {
             string processorId = "";
@@ -116,20 +145,14 @@ namespace AnikXClient
                     }
                 }
             }
-            catch
-            {
-                // Fallback if registry access fails
-            }
+            catch { }
 
             string rawHwid = Environment.MachineName + Environment.ProcessorCount + processorId;
             using (SHA256 sha256 = SHA256.Create())
             {
                 byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawHwid));
                 StringBuilder sb = new StringBuilder();
-                foreach (byte b in bytes)
-                {
-                    sb.Append(b.ToString("x2"));
-                }
+                foreach (byte b in bytes) sb.Append(b.ToString("x2"));
                 return sb.ToString();
             }
         }
@@ -149,6 +172,7 @@ namespace AnikXClient
                 if (response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("[+] Registration Successful!");
+                    ParseUserInfo(responseBody, username, hwid, licenseKey);
                     return true;
                 }
                 else
@@ -179,6 +203,7 @@ namespace AnikXClient
                 if (response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("[+] Login Successful!");
+                    ParseUserInfo(responseBody, username, hwid, "");
                     return true;
                 }
                 else
@@ -209,6 +234,7 @@ namespace AnikXClient
                 if (response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("[+] License Login Successful!");
+                    ParseUserInfo(responseBody, "Key-Only", hwid, licenseKey);
                     return true;
                 }
                 else
@@ -224,24 +250,39 @@ namespace AnikXClient
             }
         }
 
-        private static string ExtractDetail(string json)
+        private static void ParseUserInfo(string json, string defaultUser, string defaultHwid, string defaultKey)
+        {
+            CurrentUser = new UserInfo
+            {
+                Username = ExtractJSONValue(json, "username") ?? defaultUser,
+                HWID = ExtractJSONValue(json, "hwid") ?? defaultHwid,
+                LicenseKey = ExtractJSONValue(json, "license_key") ?? defaultKey,
+                ExpiresAt = ExtractJSONValue(json, "expires_at") ?? "Lifetime",
+                SubscriptionLevel = int.TryParse(ExtractJSONValue(json, "subscription_level"), out int sub) ? sub : 1,
+                CreatedAt = ExtractJSONValue(json, "created_at") ?? ""
+            };
+        }
+
+        private static string ExtractJSONValue(string json, string key)
         {
             try
             {
-                string searchToken = "\"detail\":\"";
+                string searchToken = $"\"{key}\":\"";
                 int index = json.IndexOf(searchToken);
                 if (index != -1)
                 {
                     int start = index + searchToken.Length;
                     int end = json.IndexOf("\"", start);
-                    if (end != -1)
-                    {
-                        return json.Substring(start, end - start);
-                    }
+                    if (end != -1) return json.Substring(start, end - start);
                 }
             }
             catch { }
-            return json;
+            return null;
+        }
+
+        private static string ExtractDetail(string json)
+        {
+            return ExtractJSONValue(json, "detail") ?? json;
         }
     }
 }

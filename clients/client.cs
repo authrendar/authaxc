@@ -7,12 +7,25 @@ using Microsoft.Win32;
 
 namespace AegisClient
 {
+    public class UserInfo
+    {
+        public string Username { get; set; } = "";
+        public string HWID { get; set; } = "";
+        public string LicenseKey { get; set; } = "";
+        public string ExpiresAt { get; set; } = "";
+        public int SubscriptionLevel { get; set; } = 1;
+        public string CreatedAt { get; set; } = "";
+    }
+
     class Program
     {
         // FastAPI Server base URL (Change this to your Render URL in production)
-        private static readonly string BaseUrl = "http://localhost:8000";
+        private static readonly string BaseUrl = "http://auth.anikxcheatx.com";
         private static readonly string AppId = "YOUR_APP_ID"; // Replace with App ID from dashboard
         private static readonly HttpClient Client = new HttpClient();
+
+        // Holds currently logged in user info
+        public static UserInfo CurrentUser = null;
 
         static async Task Main(string[] args)
         {
@@ -52,7 +65,11 @@ namespace AegisClient
                         Console.Write("Enter license key: ");
                         string key = Console.ReadLine()?.Trim();
 
-                        await RegisterUser(user, pwd, key);
+                        if (await RegisterUser(user, pwd, key))
+                        {
+                            PrintUserInfo();
+                            break;
+                        }
                         Console.WriteLine(new string('-', 40));
                     }
                     else if (subChoice == "2")
@@ -65,6 +82,7 @@ namespace AegisClient
                         if (await LoginUser(user, pwd))
                         {
                             Console.WriteLine("[*] Access Granted. Starting application...");
+                            PrintUserInfo();
                             break;
                         }
                         else
@@ -83,6 +101,7 @@ namespace AegisClient
                     if (await LoginByLicense(key))
                     {
                         Console.WriteLine("[*] Access Granted. Starting application...");
+                        PrintUserInfo();
                         break;
                     }
                     else
@@ -101,6 +120,18 @@ namespace AegisClient
                     Console.WriteLine("[-] Invalid choice. Try again.\n");
                 }
             }
+        }
+
+        public static void PrintUserInfo()
+        {
+            if (CurrentUser == null) return;
+            Console.WriteLine("\n================ USER INFORMATION ================");
+            Console.WriteLine($" Username           : {CurrentUser.Username}");
+            Console.WriteLine($" Hardware ID (HWID) : {CurrentUser.HWID}");
+            Console.WriteLine($" License Key        : {CurrentUser.LicenseKey}");
+            Console.WriteLine($" Expiry Date        : {CurrentUser.ExpiresAt}");
+            Console.WriteLine($" Subscription Level : Level {CurrentUser.SubscriptionLevel}");
+            Console.WriteLine("==================================================\n");
         }
 
         private static string GetHWID()
@@ -149,6 +180,7 @@ namespace AegisClient
                 if (response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("[+] Registration Successful!");
+                    ParseUserInfo(responseBody, username, hwid, licenseKey);
                     return true;
                 }
                 else
@@ -179,6 +211,7 @@ namespace AegisClient
                 if (response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("[+] Login Successful!");
+                    ParseUserInfo(responseBody, username, hwid, "");
                     return true;
                 }
                 else
@@ -209,6 +242,7 @@ namespace AegisClient
                 if (response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("[+] License Login Successful!");
+                    ParseUserInfo(responseBody, "Key-Only", hwid, licenseKey);
                     return true;
                 }
                 else
@@ -224,24 +258,39 @@ namespace AegisClient
             }
         }
 
-        private static string ExtractDetail(string json)
+        private static void ParseUserInfo(string json, string defaultUser, string defaultHwid, string defaultKey)
+        {
+            CurrentUser = new UserInfo
+            {
+                Username = ExtractJSONValue(json, "username") ?? defaultUser,
+                HWID = ExtractJSONValue(json, "hwid") ?? defaultHwid,
+                LicenseKey = ExtractJSONValue(json, "license_key") ?? defaultKey,
+                ExpiresAt = ExtractJSONValue(json, "expires_at") ?? "Lifetime",
+                SubscriptionLevel = int.TryParse(ExtractJSONValue(json, "subscription_level"), out int sub) ? sub : 1,
+                CreatedAt = ExtractJSONValue(json, "created_at") ?? ""
+            };
+        }
+
+        private static string ExtractJSONValue(string json, string key)
         {
             try
             {
-                string searchToken = "\"detail\":\"";
+                string searchToken = $"\"{key}\":\"";
                 int index = json.IndexOf(searchToken);
                 if (index != -1)
                 {
                     int start = index + searchToken.Length;
                     int end = json.IndexOf("\"", start);
-                    if (end != -1)
-                    {
-                        return json.Substring(start, end - start);
-                    }
+                    if (end != -1) return json.Substring(start, end - start);
                 }
             }
             catch { }
-            return json;
+            return null;
+        }
+
+        private static string ExtractDetail(string json)
+        {
+            return ExtractJSONValue(json, "detail") ?? json;
         }
     }
 }
