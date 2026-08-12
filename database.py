@@ -1,5 +1,6 @@
 import os
 import bcrypt
+from datetime import datetime
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -68,17 +69,33 @@ def init_db():
     safe_create_index(variables_collection, [("app_id", 1), ("name", 1)])
     safe_create_index(webhooks_collection, [("app_id", 1), ("name", 1)])
     
-    # Seed Admin user ONLY if ADMIN_USERNAME and ADMIN_PASSWORD env vars are explicitly provided
+    # Clean database if CLEAN_DATABASE environment variable is set to true
+    if os.getenv("CLEAN_DATABASE", "").lower() == "true":
+        print("[DB RESET] Cleaning all database collections...")
+        apps_collection.delete_many({})
+        users_collection.delete_many({})
+        licenses_collection.delete_many({})
+        logs_collection.delete_many({})
+        variables_collection.delete_many({})
+        webhooks_collection.delete_many({})
+        subscriptions_collection.delete_many({})
+        tokens_collection.delete_many({})
+        sessions_collection.delete_many({})
+        files_collection.delete_many({})
+        resources_collection.delete_many({})
+
+    # Seed primary admin user ONLY if ADMIN_USERNAME and ADMIN_PASSWORD env vars are explicitly provided
     admin_user = os.getenv("ADMIN_USERNAME")
     admin_pass = os.getenv("ADMIN_PASSWORD")
     
-    if admin_user and admin_pass and not users_collection.find_one({"username": admin_user}):
-        print(f"[DB] Seeding admin user from Environment Variables: {admin_user}")
+    if admin_user and admin_pass and not users_collection.find_one({"username": admin_user, "role": "admin"}):
+        print(f"[DB] Creating admin user from Environment Variables: {admin_user}")
         hashed = hash_password(admin_pass)
         users_collection.insert_one({
             "username": admin_user,
             "password": hashed,
-            "role": "admin"
+            "role": "admin",
+            "created_at": datetime.utcnow().isoformat()
         })
 
 # Run db initialization on import
