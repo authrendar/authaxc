@@ -372,6 +372,7 @@ function updateActiveAppDisplay() {
     if (settingsAppName) settingsAppName.textContent = activeApp.name;
     if (settingsAppId) settingsAppId.textContent = activeApp.id;
     document.querySelectorAll('.active-app-id-text').forEach(el => el.textContent = activeApp.id);
+    document.querySelectorAll('.api-domain-text').forEach(el => el.textContent = window.location.origin);
     window.rawClientSecret = activeApp.secret;
     
     // Mask the secret by default
