@@ -677,6 +677,8 @@ def client_login(data: models.ClientLogin):
     return {
         "status": "success",
         "message": "Login successful",
+        "username": data.username,
+        "license_key": user.get("license_key", ""),
         "expires_at": lic["expires_at"],
         "subscription_level": sub_level,
         "rules": rules
@@ -747,6 +749,8 @@ def client_license_login(data: models.ClientLicenseLogin):
     return {
         "status": "success",
         "message": "License login successful",
+        "username": lic.get("used_by") or "LicenseOnly",
+        "license_key": data.license_key,
         "expires_at": lic["expires_at"],
         "subscription_level": sub_level,
         "rules": rules
