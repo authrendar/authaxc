@@ -143,6 +143,7 @@ async function showDashboard() {
 
     switchTab('overview');
     await fetchApps();
+    fetch2FAStatus();
 }
 
 // Switch tabs logic
@@ -983,6 +984,8 @@ navItems.forEach(item => {
             fetchChats();
         } else if (tabId === 'rules') {
             fetchRules();
+        } else if (tabId === 'settings') {
+            fetch2FAStatus();
         } else if (tabId === 'resources') {
             fetchResources();
         }
@@ -1188,6 +1191,17 @@ window.deletePlatformAdmin = async function (username) {
         }
     }
 };
+
+document.addEventListener('click', (e) => {
+    if (e.target && (e.target.id === 'btn-create-admin-modal' || e.target.closest('#btn-create-admin-modal'))) {
+        const modal = document.getElementById('create-admin-modal');
+        if (modal) modal.classList.remove('hidden');
+    }
+    if (e.target && (e.target.id === 'btn-close-admin-modal' || e.target.closest('#btn-close-admin-modal'))) {
+        const modal = document.getElementById('create-admin-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+});
 
 const btnCreateAdminModal = document.getElementById('btn-create-admin-modal');
 const createAdminModal = document.getElementById('create-admin-modal');
