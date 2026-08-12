@@ -107,14 +107,18 @@ window.showToast = showToast;
 
 // Initial Authentication Check
 async function checkAuth() {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+        showLogin();
+        return;
+    }
     try {
-        const token = localStorage.getItem('admin_token');
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const response = await fetch('/api/admin/apps', { headers });
+        const response = await fetch('/api/admin/apps', { headers: { 'Authorization': `Bearer ${token}` } });
         if (response.ok) {
             appsList = await response.json();
             showDashboard();
         } else {
+            localStorage.removeItem('admin_token');
             showLogin();
         }
     } catch (error) {
