@@ -777,6 +777,35 @@
                     </div>
                 </section>
 
+                <!-- Web Admins Management Tab -->
+                <section id="tab-web-admins" class="tab-content hidden">
+                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1>Web Admins Management</h1>
+                            <p>View and manage all administrators who have access to this control panel.</p>
+                        </div>
+                        <button id="btn-create-admin-modal" class="btn btn-blue"><i class="fa-solid fa-user-shield"></i> Create Admin User</button>
+                    </div>
+                    <div class="card">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Created By</th>
+                                    <th>Created At</th>
+                                    <th style="width: 80px; text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="web-admins-table-body">
+                                <tr>
+                                    <td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No administrators found</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <!-- Resources Tab -->
                 <section id="tab-resources" class="tab-content hidden">
                     <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
@@ -1114,6 +1143,27 @@
                         style="width:100%; border:1px solid var(--border-color); background:rgba(255,255,255,0.02); color:var(--text-color); border-radius:6px; padding:10px;"></textarea>
                 </div>
                 <button type="submit" class="btn btn-blue btn-block">Save Resource</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Admin Modal -->
+    <div id="create-admin-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Platform Admin Account</h3>
+                <button id="btn-close-admin-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="create-admin-form">
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Admin Username</label>
+                    <input type="text" id="new-admin-username" placeholder="e.g. partner_admin" required autocomplete="off">
+                </div>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Admin Password</label>
+                    <input type="password" id="new-admin-password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-blue btn-block">Create Admin Account <i class="fa-solid fa-user-shield"></i></button>
             </form>
         </div>
     </div>

@@ -738,7 +738,7 @@ loginForm.addEventListener('submit', async (e) => {
     loginError.classList.add('hidden');
 
     try {
-        const endpoint = isLoginMode ? '/api/admin/login' : '/api/admin/register';
+        const endpoint = '/api/admin/login';
         const payload = { username: usernameInput, password: passwordInput };
         if (is2FAState && isLoginMode) {
             payload.totp_code = totpInput;
@@ -1119,11 +1119,9 @@ if (btnCloseGenerateModal) {
 checkAuth();
 
 // ==========================================
-// PLATFORM ADMINS MANAGEMENT
+// PLATFORM ADMIMS MANAGEMENT
 // ==========================================
 let platformAdminsList = [];
-const adminsTableBody = document.getElementById('admins-table-body');
-const noAdminsMsg = document.getElementById('no-admins-msg');
 
 // WEB ADMIM USER MANAGEMENT
 window.fetchWebAdmins = async function() {
@@ -1141,11 +1139,12 @@ window.fetchWebAdmins = async function() {
 }
 
 function renderPlatformAdmins() {
+    const adminsTableBody = document.getElementById('web-admins-table-body') || document.getElementById('admins-table-body');
     if (!adminsTableBody) return;
     adminsTableBody.innerHTML = '';
 
     if (platformAdminsList.length === 0) {
-        if (noAdminsMsg) noAdminsMsg.classList.remove('hidden');
+        adminsTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No administrators found</td></tr>';
     } else {
         if (noAdminsMsg) noAdminsMsg.classList.add('hidden');
 
@@ -1159,8 +1158,9 @@ function renderPlatformAdmins() {
 
             tr.innerHTML = `
                 <td><strong>${admin.username}</strong> ${isMe ? '<span class="badge badge-used" style="margin-left: 5px; font-size: 0.6rem;">You</span>' : ''}</td>
+                <td><span class="badge badge-unused">${admin.role || 'admin'}</span></td>
+                <td>${admin.created_by || 'System'}</td>
                 <td>${formattedDate}</td>
-                <td><span class="badge badge-unused">Admin</span></td>
                 <td>
                     <div class="action-buttons" style="justify-content: center;">
                         <button onclick="deletePlatformAdmin('${admin.username}')" class="btn-action ban-btn" title="Delete Admin" ${isMe ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}><i class="fa-solid fa-trash-can"></i></button>
@@ -1175,10 +1175,10 @@ function renderPlatformAdmins() {
 window.deletePlatformAdmin = async function (username) {
     if (confirm(`Are you sure you want to permanently delete the admin account '${username}'?`)) {
         try {
-            const response = await fetch(`/api/admin/platform_users/${username}`, { method: 'DELETE' });
+            const response = await fetch(`/api/admin/platform_users/${username}`, { method: 'DELETE', headers: getAuthHeader() });
             if (response.ok) {
                 showToast('Admin account deleted successfully');
-                await fetchPlatformAdmins();
+                await fetchWebAdmins();
             } else {
                 const data = await response.json();
                 showToast(data.detail || 'Failed to delete admin', true);
@@ -1189,12 +1189,45 @@ window.deletePlatformAdmin = async function (username) {
     }
 };
 
+const btnCreateAdminModal = document.getElementById('btn-create-admin-modal');
+const createAdminModal = document.getElementById('create-admin-modal');
+const createAdminForm = document.getElementById('create-admin-form');
+if (btnCreateAdminModal) btnCreateAdminModal.onclick = () => createAdminModal.classList.remove('hidden');
+if (document.getElementById('btn-close-admin-modal')) document.getElementById('btn-close-admin-modal').onclick = () => createAdminModal.classList.add('hidden');
+
+if (createAdminForm) {
+    createAdminForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('new-admin-username').value.trim();
+        const password = document.getElementById('new-admin-password').value;
+        
+        try {
+            const res = await fetch('/api/admin/register', {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader()),
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(`Admin account '${username}' created!`);
+                createAdminModal.classList.add('hidden');
+                createAdminForm.reset();
+                fetchWebAdmins();
+            } else {
+                showToast(typeof data === 'string' ? data : (data.detail || 'Failed to create admin'), true);
+            }
+        } catch(e) {
+            showToast('Server connection error!', true);
+        }
+    };
+}
+
 // ==========================================
 // TWO-FACTOR AUTHENTICATION (2FA) SETTINGS
 // ==========================================
 async function fetch2FAStatus() {
     try {
-        const response = await fetch('/api/admin/2fa/status');
+        const response = await fetch('/api/admin/2fa/status', { headers: getAuthHeader() });
         if (response.ok) {
             const data = await response.json();
             const statusText = document.getElementById('2fa-status-text');
@@ -1222,7 +1255,7 @@ async function fetch2FAStatus() {
 if (document.getElementById('btn-enable-2fa')) {
     document.getElementById('btn-enable-2fa').addEventListener('click', async () => {
         try {
-            const response = await fetch('/api/admin/2fa/setup', { method: 'POST' });
+            const response = await fetch('/api/admin/2fa/setup', { method: 'POST', headers: getAuthHeader() });
             if (response.ok) {
                 const data = await response.json();
                 // We use an external API to generate the QR code image from the OTP URI
@@ -1246,7 +1279,7 @@ if (document.getElementById('btn-verify-2fa')) {
         try {
             const response = await fetch('/api/admin/2fa/verify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader()),
                 body: JSON.stringify({ code })
             });
             const data = await response.json();
@@ -1272,12 +1305,12 @@ if (document.getElementById('btn-disable-2fa')) {
 if (document.getElementById('btn-confirm-disable-2fa')) {
     document.getElementById('btn-confirm-disable-2fa').addEventListener('click', async () => {
         const code = document.getElementById('disable-2fa-code').value.trim();
-        if (!code) return showToast('Please enter the code', true);
+        if (!code) return showToast('Please enter your 2FA code', true);
 
         try {
             const response = await fetch('/api/admin/2fa/disable', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader()),
                 body: JSON.stringify({ code })
             });
             const data = await response.json();
@@ -1554,12 +1587,12 @@ window.deleteSession = async function (sessionId) {
 window.fetchFiles = async function () {
     if (!activeAppId) return;
     try {
-        const res = await fetch(`/api/admin/files?app_id=${activeAppId}`);
+        const res = await fetch(`/api/admin/files?app_id=${activeAppId}`, { headers: getAuthHeader() });
         const files = await res.json();
         const tbody = document.getElementById('files-table-body');
         tbody.innerHTML = '';
         if (files.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No files uploaded</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No files found</td></tr>';
         } else {
             files.forEach(f => {
                 const tr = document.createElement('tr');
@@ -1581,7 +1614,7 @@ window.fetchFiles = async function () {
 
 window.deleteFile = async function (fileId) {
     if (confirm('Delete file?')) {
-        await fetch(`/api/admin/files/${fileId}?app_id=${activeAppId}`, { method: 'DELETE' });
+        await fetch(`/api/admin/files/${fileId}?app_id=${activeAppId}`, { method: 'DELETE', headers: getAuthHeader() });
         showToast('File deleted');
         fetchFiles();
     }
@@ -1603,7 +1636,7 @@ if (uploadFileForm) {
         formData.append('file', fileInput.files[0]);
 
         try {
-            const res = await fetch('/api/admin/files', { method: 'POST', body: formData });
+            const res = await fetch('/api/admin/files', { method: 'POST', headers: getAuthHeader(), body: formData });
             if (res.ok) { showToast('File uploaded'); uploadFileModal.classList.add('hidden'); uploadFileForm.reset(); fetchFiles(); }
             else showToast('Upload failed', true);
         } catch (e) { showToast('Error', true); }
@@ -1614,7 +1647,7 @@ if (uploadFileForm) {
 window.fetchChats = async function () {
     if (!activeAppId) return;
     try {
-        const res = await fetch(`/api/admin/chats?app_id=${activeAppId}`);
+        const res = await fetch(`/api/admin/chats?app_id=${activeAppId}`, { headers: getAuthHeader() });
         const chats = await res.json();
         const tbody = document.getElementById('chats-table-body');
         tbody.innerHTML = '';
@@ -1626,7 +1659,7 @@ window.fetchChats = async function () {
                 tr.innerHTML = `
                     <td><strong>${c.username}</strong></td>
                     <td>${c.message}</td>
-                    <td>${new Date(c.timestamp).toLocaleString()}</td>
+                    <td>${new Date(c.created_at).toLocaleString()}</td>
                     <td>
                         <div class="action-buttons" style="justify-content:center;">
                             <button onclick="deleteChat('${c.id}')" class="btn-action ban-btn"><i class="fa-solid fa-trash"></i></button>
@@ -1641,7 +1674,7 @@ window.fetchChats = async function () {
 
 window.deleteChat = async function (msgId) {
     if (confirm('Delete message?')) {
-        await fetch(`/api/admin/chats/${msgId}?app_id=${activeAppId}`, { method: 'DELETE' });
+        await fetch(`/api/admin/chats/${msgId}?app_id=${activeAppId}`, { method: 'DELETE', headers: getAuthHeader() });
         fetchChats();
     }
 };
@@ -1650,7 +1683,7 @@ window.deleteChat = async function (msgId) {
 window.fetchResources = async function () {
     if (!activeAppId) return;
     try {
-        const res = await fetch(`/api/admin/resources?app_id=${activeAppId}`);
+        const res = await fetch(`/api/admin/resources?app_id=${activeAppId}`, { headers: getAuthHeader() });
         const resources = await res.json();
         const tbody = document.getElementById('resources-table-body');
         tbody.innerHTML = '';
@@ -1676,7 +1709,7 @@ window.fetchResources = async function () {
 
 window.deleteResource = async function (resId) {
     if (confirm('Delete resource?')) {
-        await fetch(`/api/admin/resources/${resId}?app_id=${activeAppId}`, { method: 'DELETE' });
+        await fetch(`/api/admin/resources/${resId}?app_id=${activeAppId}`, { method: 'DELETE', headers: getAuthHeader() });
         showToast('Resource deleted');
         fetchResources();
     }
@@ -1697,7 +1730,7 @@ if (addResourceForm) {
         try {
             const res = await fetch('/api/admin/resources', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader()),
                 body: JSON.stringify({ app_id: activeAppId, title, content })
             });
             if (res.ok) { showToast('Resource saved'); addResourceModal.classList.add('hidden'); addResourceForm.reset(); fetchResources(); }
@@ -1734,7 +1767,7 @@ if (rulesForm) {
         try {
             const res = await fetch(`/api/admin/apps/${activeAppId}/rules`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader()),
                 body: JSON.stringify({ hwid_lock, block_vpn, block_dev_mode, key_prefix })
             });
             if (res.ok) {
