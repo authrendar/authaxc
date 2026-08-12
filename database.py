@@ -6,11 +6,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI")
-if not MONGO_URI:
-    # Fallback to local MongoDB or warning message if not set
-    print("[WARNING] MONGO_URI not found in environment variables. Falling back to localhost.")
-    MONGO_URI = "mongodb://localhost:27017/licensing_db"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/licensing_db")
 
 client = MongoClient(MONGO_URI)
 try:
@@ -50,17 +46,36 @@ def init_db():
         users_collection.drop_index("username_1")
     except Exception:
         pass
+
+    try:
+        users_collection.drop_index("username_1_app_id_1")
+    except Exception:
+        pass
         
-    users_collection.create_index([("username", 1), ("app_id", 1)], unique=True)
+    # Compound index for users per app_id, allowing admin users (no app_id)
+    try:
+        users_collection.create_index(
+            [("username", 1), ("app_id", 1)],
+            unique=True,
+            partialFilterExpression={"app_id": {"$exists": True}}
+        )
+        users_collection.create_index(
+            [("username", 1), ("role", 1)],
+            unique=True,
+            partialFilterExpression={"role": "admin"}
+        )
+    except Exception as e:
+        print(f"[DB Index Warning] {e}")
+
     licenses_collection.create_index("key", unique=True)
     licenses_collection.create_index("app_id")
     logs_collection.create_index([("app_id", 1), ("timestamp", -1)])
     
     # Seed default Admin user if none exists
-    admin_user = os.getenv("ADMIN_USERNAME", "admin")
-    admin_pass = os.getenv("ADMIN_PASSWORD", "admin12345")
+    admin_user = os.getenv("ADMIN_USERNAME", "")
+    admin_pass = os.getenv("ADMIN_PASSWORD", "")
     
-    if not users_collection.find_one({"username": admin_user}):
+    if not users_collection.find_one({"username": admin_user, "role": "admin"}):
         print(f"[DB] Seeding default admin user: {admin_user}")
         hashed = hash_password(admin_pass)
         users_collection.insert_one({

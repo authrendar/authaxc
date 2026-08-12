@@ -91,6 +91,7 @@ class AppRulesUpdate(BaseModel):
     hwid_lock: bool = True
     block_vpn: bool = False
     block_dev_mode: bool = False
+    key_prefix: Optional[str] = "AnikXCheats"
 
 class ChatMessageCreate(BaseModel):
     app_id: str

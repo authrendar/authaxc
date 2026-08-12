@@ -7,7 +7,7 @@ import json
 import base64
 import pyotp
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from fastapi import FastAPI, Request, Response, HTTPException, Depends, UploadFile, File, Form
@@ -35,6 +35,20 @@ app.add_middleware(
 
 # JWT Secret
 JWT_SECRET = os.getenv("JWT_SECRET", "super_secret_jwt_signing_key_change_me_in_production")
+
+# Utility function for ISO parsing to support older Python / trailing Z
+def parse_iso_datetime(dt_str: str):
+    if not dt_str:
+        return None
+    try:
+        if dt_str.endswith("Z"):
+            dt_str = dt_str[:-1] + "+00:00"
+        return datetime.fromisoformat(dt_str)
+    except Exception:
+        return None
+
+def current_utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 # --- JWT HELPER FUNCTIONS ---
 def base64url_encode(data: bytes) -> str:
@@ -99,7 +113,7 @@ def log_event(app_id: str, event: str, details: str):
             "app_id": app_id,
             "event": event,
             "details": details,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": current_utc_iso()
         })
     except Exception as e:
         print(f"[ERROR] Failed to log event: {e}")
@@ -115,7 +129,7 @@ def list_logs(app_id: str = None, limit: int = 100, username: str = Depends(get_
 
 # --- ADMIN LOGIN / LOGOUT / REGISTER ---
 @app.post("/api/admin/register")
-def admin_register(data: models.AdminRegister):
+def admin_register(data: models.AdminRegister, current_user: str = Depends(get_current_admin)):
     if db.users_collection.find_one({"username": data.username, "role": "admin"}):
         raise HTTPException(status_code=400, detail="Username already exists")
         
@@ -123,10 +137,11 @@ def admin_register(data: models.AdminRegister):
         "username": data.username,
         "password": db.hash_password(data.password),
         "role": "admin",
-        "created_at": datetime.utcnow().isoformat()
+        "created_by": current_user,
+        "created_at": current_utc_iso()
     }
     db.users_collection.insert_one(user_doc)
-    return {"status": "success", "message": "Registered successfully"}
+    return {"status": "success", "message": f"Admin account '{data.username}' created successfully"}
 
 @app.post("/api/admin/login")
 def admin_login(data: models.AdminLogin, response: Response):
@@ -139,7 +154,11 @@ def admin_login(data: models.AdminLogin, response: Response):
         if not data.totp_code:
             raise HTTPException(status_code=403, detail="2FA_REQUIRED")
         
-        totp = pyotp.TOTP(user["totp_secret"])
+        totp_secret = user.get("totp_secret")
+        if not totp_secret:
+            raise HTTPException(status_code=400, detail="2FA setup incomplete")
+            
+        totp = pyotp.TOTP(totp_secret)
         if not totp.verify(data.totp_code):
             raise HTTPException(status_code=400, detail="Invalid 2FA code")
     
@@ -157,7 +176,7 @@ def admin_login(data: models.AdminLogin, response: Response):
         samesite="lax",
         secure=False
     )
-    return {"status": "success", "message": "Logged in successfully"}
+    return {"status": "success", "token": token, "message": "Logged in successfully"}
 
 @app.post("/api/admin/logout")
 def admin_logout(response: Response, username: str = Depends(get_current_admin)):
@@ -235,7 +254,6 @@ def delete_platform_user(target_username: str, username: str = Depends(get_curre
     db.users_collection.delete_one({"username": target_username, "role": "admin"})
     return {"status": "success", "message": f"Admin '{target_username}' deleted"}
 
-# --- ADMIN APP MANAGEMENT ---
 @app.post("/api/admin/apps")
 def create_app(data: models.AppCreate, username: str = Depends(get_current_admin)):
     app_id = f"APP-{uuid.uuid4().hex[:8].upper()}"
@@ -245,15 +263,17 @@ def create_app(data: models.AppCreate, username: str = Depends(get_current_admin
         "id": app_id,
         "name": data.name,
         "secret": app_secret,
-        "created_at": datetime.utcnow().isoformat()
+        "owner": username,
+        "created_at": current_utc_iso()
     }
     db.apps_collection.insert_one(app_doc)
-    log_event(app_id, "App Create", f"Created application '{data.name}'")
+    log_event(app_id, "App Create", f"Created application '{data.name}' by admin '{username}'")
     return {"status": "success", "app": {"id": app_id, "name": data.name, "secret": app_secret}}
 
 @app.get("/api/admin/apps")
 def list_apps(username: str = Depends(get_current_admin)):
-    apps = list(db.apps_collection.find({}, {"_id": 0}))
+    # Fetch apps created by this admin or legacy apps without owner
+    apps = list(db.apps_collection.find({"$or": [{"owner": username}, {"owner": None}, {"owner": {"$exists": False}}]}, {"_id": 0}))
     return apps
 
 @app.put("/api/admin/apps/{app_id}")
@@ -276,12 +296,19 @@ def delete_app(app_id: str, username: str = Depends(get_current_admin)):
     db.logs_collection.delete_many({"app_id": app_id})
     return {"status": "success", "message": "Application and all associated data deleted"}
 
-# --- ADMIN LICENSE MANAGEMENT ---
 @app.get("/api/admin/licenses")
 def list_licenses(app_id: str = None, username: str = Depends(get_current_admin)):
+    owned_apps = list(db.apps_collection.find({"$or": [{"owner": username}, {"owner": {"$exists": False}}]}, {"id": 1}))
+    owned_app_ids = [a["id"] for a in owned_apps]
+    
     query = {}
     if app_id:
+        if app_id not in owned_app_ids:
+            return []
         query["app_id"] = app_id
+    else:
+        query["app_id"] = {"$in": owned_app_ids}
+        
     licenses = list(db.licenses_collection.find(query, {"_id": 0}))
     return licenses
 
@@ -291,11 +318,20 @@ def generate_licenses(data: models.LicenseGenerate, username: str = Depends(get_
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
         
+    rules = app.get("rules", {})
+    prefix = rules.get("key_prefix", "AnikXCheats").strip()
+    if not prefix:
+        prefix = "AnikXCheats"
+        
+    import random, string
     generated_keys = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     for _ in range(data.count):
-        key = f"LCN-{uuid.uuid4().hex[:8].upper()}-{uuid.uuid4().hex[:8].upper()}-{uuid.uuid4().hex[:8].upper()}"
+        # Generate 4-character mixed random code e.g. TTgq, ra5D, cTSt
+        random_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+        key = f"{prefix}-{random_suffix}"
+        
         lic_doc = {
             "key": key,
             "app_id": data.app_id,
@@ -307,12 +343,12 @@ def generate_licenses(data: models.LicenseGenerate, username: str = Depends(get_
             "is_banned": False,
             "note": data.note or "",
             "hwid": None,
-            "created_at": now.isoformat()
+            "created_at": current_utc_iso()
         }
         db.licenses_collection.insert_one(lic_doc)
         generated_keys.append(key)
         
-    log_event(data.app_id, "License Generate", f"Generated {data.count} keys (duration: {data.duration_days} days)")
+    log_event(data.app_id, "License Generate", f"Generated {data.count} keys with prefix '{prefix}' (duration: {data.duration_days} days)")
     return {"status": "success", "keys": generated_keys}
 
 @app.delete("/api/admin/licenses/{key}")
@@ -359,12 +395,19 @@ def reset_hwid(key: str, username: str = Depends(get_current_admin)):
     log_event(lic["app_id"], "HWID Reset", f"Reset HWID for key '{key}'")
     return {"status": "success", "message": "HWID reset successfully"}
 
-# --- ADMIN USER MANAGEMENT ---
 @app.get("/api/admin/users")
 def list_users(app_id: str = None, username: str = Depends(get_current_admin)):
-    query = {}
+    owned_apps = list(db.apps_collection.find({"$or": [{"owner": username}, {"owner": {"$exists": False}}]}, {"id": 1}))
+    owned_app_ids = [a["id"] for a in owned_apps]
+    
+    query = {"role": {"$ne": "admin"}}
     if app_id:
+        if app_id not in owned_app_ids:
+            return []
         query["app_id"] = app_id
+    else:
+        query["app_id"] = {"$in": owned_app_ids}
+        
     users = list(db.users_collection.find(query, {"_id": 0, "password": 0}))
     return users
 
@@ -522,18 +565,19 @@ def client_login(data: models.ClientLogin):
     if not lic:
         raise HTTPException(status_code=400, detail="No license linked to this user")
         
-    if lic["is_banned"]:
+    if lic.get("is_banned", False):
         raise HTTPException(status_code=403, detail="Your license has been banned")
         
-    if lic["expires_at"] and lic["expires_at"] != "Lifetime":
-        exp_time = datetime.fromisoformat(lic["expires_at"])
-        if datetime.utcnow() > exp_time:
-            raise HTTPException(status_code=403, detail="Your license has expired")
+    if lic.get("expires_at") and lic["expires_at"] != "Lifetime":
+        exp_time = parse_iso_datetime(lic["expires_at"])
+        if exp_time:
+            now_utc = datetime.now(timezone.utc)
+            if exp_time.tzinfo is None:
+                exp_time = exp_time.replace(tzinfo=timezone.utc)
+            if now_utc > exp_time:
+                raise HTTPException(status_code=403, detail="Your license has expired")
             
     rules = app.get("rules", {})
-    if rules.get("block_dev_mode", False):
-        pass # Placeholder for client dev mode check
-        
     if rules.get("hwid_lock", True):
         if not user.get("hwid"):
             db.users_collection.update_one({"username": data.username, "app_id": data.app_id}, {"$set": {"hwid": data.hwid}})
@@ -546,11 +590,11 @@ def client_login(data: models.ClientLogin):
     if user.get("subscription_id"):
         sub_doc = db.subscriptions_collection.find_one({"id": user["subscription_id"], "app_id": data.app_id})
         if sub_doc:
-            sub_level = sub_doc["level"]
+            sub_level = sub_doc.get("level", 1)
     elif lic.get("subscription_id"):
         sub_doc = db.subscriptions_collection.find_one({"id": lic["subscription_id"], "app_id": data.app_id})
         if sub_doc:
-            sub_level = sub_doc["level"]
+            sub_level = sub_doc.get("level", 1)
 
     session_id = uuid.uuid4().hex
     db.sessions_collection.insert_one({
@@ -558,7 +602,7 @@ def client_login(data: models.ClientLogin):
         "app_id": data.app_id,
         "username": data.username,
         "hwid": data.hwid,
-        "login_time": datetime.utcnow().isoformat()
+        "login_time": current_utc_iso()
     })
 
     log_event(data.app_id, "Login", f"User '{data.username}' logged in successfully from HWID '{data.hwid}'")
@@ -568,7 +612,7 @@ def client_login(data: models.ClientLogin):
         "username": user["username"],
         "hwid": data.hwid,
         "license_key": user["license_key"],
-        "expires_at": lic["expires_at"],
+        "expires_at": lic.get("expires_at", "Lifetime"),
         "subscription_level": sub_level,
         "created_at": user.get("created_at", "")
     }
@@ -583,15 +627,15 @@ def client_license_login(data: models.ClientLicenseLogin):
     if not lic:
         raise HTTPException(status_code=400, detail="Invalid license key for this application")
         
-    if lic["is_banned"]:
+    if lic.get("is_banned", False):
         raise HTTPException(status_code=403, detail="Your license has been banned")
         
-    if not lic["is_used"]:
-        expiry = None
-        if lic["duration_days"] > 0:
-            expiry = (datetime.utcnow() + timedelta(days=lic["duration_days"])).isoformat()
-        else:
-            expiry = "Lifetime"
+    now = datetime.now(timezone.utc)
+    if not lic.get("is_used", False):
+        expiry = "Lifetime"
+        duration = lic.get("duration_days", 0)
+        if duration > 0:
+            expiry = (now + timedelta(days=duration)).isoformat()
             
         db.licenses_collection.update_one(
             {"key": data.license_key},
@@ -604,17 +648,24 @@ def client_license_login(data: models.ClientLicenseLogin):
                 }
             }
         )
-        lic = db.licenses_collection.find_one({"key": data.license_key})
+        lic["is_used"] = True
+        lic["used_by"] = "Key-Only"
+        lic["expires_at"] = expiry
+        lic["hwid"] = data.hwid
     else:
-        if lic["expires_at"] and lic["expires_at"] != "Lifetime":
-            exp_time = datetime.fromisoformat(lic["expires_at"])
-            if datetime.utcnow() > exp_time:
-                raise HTTPException(status_code=403, detail="Your license has expired")
+        if lic.get("expires_at") and lic["expires_at"] != "Lifetime":
+            exp_time = parse_iso_datetime(lic["expires_at"])
+            if exp_time:
+                if exp_time.tzinfo is None:
+                    exp_time = exp_time.replace(tzinfo=timezone.utc)
+                if now > exp_time:
+                    raise HTTPException(status_code=403, detail="Your license has expired")
                 
         rules = app.get("rules", {})
         if rules.get("hwid_lock", True):
             if not lic.get("hwid"):
                 db.licenses_collection.update_one({"key": data.license_key}, {"$set": {"hwid": data.hwid}})
+                lic["hwid"] = data.hwid
             elif lic["hwid"] != data.hwid:
                 raise HTTPException(status_code=403, detail="HWID mismatch. Please reset HWID on the dashboard")
             
@@ -623,7 +674,7 @@ def client_license_login(data: models.ClientLicenseLogin):
     if lic.get("subscription_id"):
         sub_doc = db.subscriptions_collection.find_one({"id": lic["subscription_id"], "app_id": data.app_id})
         if sub_doc:
-            sub_level = sub_doc["level"]
+            sub_level = sub_doc.get("level", 1)
 
     session_id = uuid.uuid4().hex
     db.sessions_collection.insert_one({
@@ -631,7 +682,7 @@ def client_license_login(data: models.ClientLicenseLogin):
         "app_id": data.app_id,
         "username": lic.get("used_by", "Key-Only"),
         "hwid": data.hwid,
-        "login_time": datetime.utcnow().isoformat()
+        "login_time": current_utc_iso()
     })
 
     log_event(data.app_id, "License Login", f"License '{data.license_key}' logged in successfully from HWID '{data.hwid}'")
@@ -641,7 +692,7 @@ def client_license_login(data: models.ClientLicenseLogin):
         "username": lic.get("used_by", "Key-Only"),
         "hwid": data.hwid,
         "license_key": data.license_key,
-        "expires_at": lic["expires_at"],
+        "expires_at": lic.get("expires_at", "Lifetime"),
         "subscription_level": sub_level,
         "created_at": lic.get("created_at", "")
     }
@@ -788,13 +839,19 @@ def client_redeem_token(data: models.ClientRedeemRequest):
         
     # Add time
     current_expiry = lic.get("expires_at")
+    now_utc = datetime.now(timezone.utc)
     if current_expiry and current_expiry != "Lifetime":
-        exp_time = datetime.fromisoformat(current_expiry)
-        if datetime.utcnow() > exp_time:
-            exp_time = datetime.utcnow() # Reset if already expired
-        new_expiry = (exp_time + timedelta(days=token_doc["duration_days"])).isoformat()
+        exp_time = parse_iso_datetime(current_expiry)
+        if exp_time:
+            if exp_time.tzinfo is None:
+                exp_time = exp_time.replace(tzinfo=timezone.utc)
+            if now_utc > exp_time:
+                exp_time = now_utc # Reset base if already expired
+            new_expiry = (exp_time + timedelta(days=token_doc["duration_days"])).isoformat()
+        else:
+            new_expiry = (now_utc + timedelta(days=token_doc["duration_days"])).isoformat()
     else:
-        new_expiry = (datetime.utcnow() + timedelta(days=token_doc["duration_days"])).isoformat()
+        new_expiry = (now_utc + timedelta(days=token_doc["duration_days"])).isoformat()
         
     update_data = {"expires_at": new_expiry}
     if token_doc.get("subscription_id"):

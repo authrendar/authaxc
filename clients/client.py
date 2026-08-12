@@ -5,8 +5,8 @@ import platform
 import requests
 
 # FastAPI Server base URL (Change this to your Render URL in production)
-BASE_URL = "http://localhost:8000"
-APP_ID = "YOUR_APP_ID"  # Replace with the App ID generated from the dashboard
+BASE_URL = "http://auth.anikxcheatx.com"
+APP_ID = "APP-1F730891"  # Replace with the App ID generated from the dashboard
 
 def get_hwid():
     """Generates a secure, unique Hardware ID (HWID) for this machine."""
