@@ -49,24 +49,24 @@ def verify_password(password: str, hashed: str) -> bool:
     except Exception:
         return False
 
+def safe_create_index(collection, keys, **kwargs):
+    try:
+        collection.create_index(keys, **kwargs)
+    except Exception as e:
+        pass  # Skip if index with different specs already exists in MongoDB Atlas
+
 # Initialize database indexes and seed admin user if not present
 def init_db():
     # Ensure indexes for ultrafast query performance under heavy load
-    apps_collection.create_index("id", unique=True)
-    
-    try:
-        users_collection.drop_index("username_1")
-    except Exception:
-        pass
-        
-    users_collection.create_index([("username", 1), ("app_id", 1)], unique=True)
-    licenses_collection.create_index("key", unique=True)
-    licenses_collection.create_index([("app_id", 1), ("key", 1)])
-    logs_collection.create_index([("app_id", 1), ("timestamp", -1)])
-    sessions_collection.create_index([("app_id", 1), ("session_id", 1)])
-    tokens_collection.create_index([("app_id", 1), ("token", 1)])
-    variables_collection.create_index([("app_id", 1), ("name", 1)])
-    webhooks_collection.create_index([("app_id", 1), ("name", 1)])
+    safe_create_index(apps_collection, "id", unique=True)
+    safe_create_index(users_collection, [("username", 1), ("app_id", 1)], unique=True)
+    safe_create_index(licenses_collection, "key", unique=True)
+    safe_create_index(licenses_collection, [("app_id", 1), ("key", 1)])
+    safe_create_index(logs_collection, [("app_id", 1), ("timestamp", -1)])
+    safe_create_index(sessions_collection, [("app_id", 1), ("session_id", 1)])
+    safe_create_index(tokens_collection, [("app_id", 1), ("token", 1)])
+    safe_create_index(variables_collection, [("app_id", 1), ("name", 1)])
+    safe_create_index(webhooks_collection, [("app_id", 1), ("name", 1)])
     
     # Seed Admin user ONLY if ADMIN_USERNAME and ADMIN_PASSWORD env vars are explicitly provided
     admin_user = os.getenv("ADMIN_USERNAME")
