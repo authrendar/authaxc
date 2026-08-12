@@ -601,7 +601,7 @@ function renderLogsTable() {
 async function deleteUser(username) {
     if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
     try {
-        const response = await fetch(`/api/admin/users/${username}?app_id=${activeAppId}`, { method: 'DELETE' });
+        const response = await fetch(`/api/admin/users/${username}?app_id=${activeAppId}`, { method: 'DELETE', headers: getAuthHeader() });
         if (response.ok) {
             showToast('User deleted successfully.');
             fetchUsers();
@@ -615,7 +615,7 @@ async function deleteUser(username) {
 
 async function resetUserHwid(username) {
     try {
-        const response = await fetch(`/api/admin/users/${username}/reset_hwid?app_id=${activeAppId}`, { method: 'POST' });
+        const response = await fetch(`/api/admin/users/${username}/reset_hwid?app_id=${activeAppId}`, { method: 'POST', headers: getAuthHeader() });
         if (response.ok) {
             showToast('User HWID reset successful.');
             fetchUsers();
@@ -633,7 +633,7 @@ window.resetUserHwid = resetUserHwid;
 // Global Actions for Keys
 async function banLicense(key) {
     try {
-        const response = await fetch(`/api/admin/licenses/${key}/ban`, { method: 'POST' });
+        const response = await fetch(`/api/admin/licenses/${key}/ban`, { method: 'POST', headers: getAuthHeader() });
         if (response.ok) {
             showToast('License key has been banned.');
             fetchLicenses();
@@ -647,7 +647,7 @@ async function banLicense(key) {
 
 async function unbanLicense(key) {
     try {
-        const response = await fetch(`/api/admin/licenses/${key}/unban`, { method: 'POST' });
+        const response = await fetch(`/api/admin/licenses/${key}/unban`, { method: 'POST', headers: getAuthHeader() });
         if (response.ok) {
             showToast('License key has been unbanned.');
             fetchLicenses();
@@ -661,7 +661,7 @@ async function unbanLicense(key) {
 
 async function resetHwid(key) {
     try {
-        const response = await fetch(`/api/admin/licenses/${key}/reset_hwid`, { method: 'POST' });
+        const response = await fetch(`/api/admin/licenses/${key}/reset_hwid`, { method: 'POST', headers: getAuthHeader() });
         if (response.ok) {
             showToast('HWID reset successful.');
             fetchLicenses();
@@ -676,7 +676,7 @@ async function resetHwid(key) {
 async function deleteLicense(key) {
     if (!confirm('Are you sure you want to delete this license and its associated user account?')) return;
     try {
-        const response = await fetch(`/api/admin/licenses/${key}`, { method: 'DELETE' });
+        const response = await fetch(`/api/admin/licenses/${key}`, { method: 'DELETE', headers: getAuthHeader() });
         if (response.ok) {
             showToast('License deleted successfully.');
             fetchLicenses();
@@ -796,11 +796,13 @@ loginForm.addEventListener('submit', async (e) => {
 if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
         try {
-            await fetch('/api/admin/logout', { method: 'POST' });
+            await fetch('/api/admin/logout', { method: 'POST', headers: getAuthHeader() });
             localStorage.removeItem('admin_user');
+            localStorage.removeItem('admin_token');
             showToast('Logged out successfully.');
             showLogin();
         } catch (error) {
+            localStorage.removeItem('admin_token');
             showLogin();
         }
     });
@@ -849,9 +851,10 @@ createAppForm.addEventListener('submit', async (e) => {
     const name = newAppName.value.trim();
 
     try {
+        const headers = Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader());
         const response = await fetch('/api/admin/apps', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({ name })
         });
 
@@ -881,7 +884,7 @@ btnDeleteApp.addEventListener('click', async () => {
     }
 
     try {
-        const response = await fetch(`/api/admin/apps/${activeAppId}`, { method: 'DELETE' });
+        const response = await fetch(`/api/admin/apps/${activeAppId}`, { method: 'DELETE', headers: getAuthHeader() });
         if (response.ok) {
             showToast('Application deleted successfully.');
             activeAppId = null;
@@ -916,9 +919,10 @@ createUserForm.addEventListener('submit', async (e) => {
 
     try {
         const subscriptionId = document.getElementById('user-subscription-id')?.value || null;
+        const headers = Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader());
         const response = await fetch('/api/admin/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({
                 app_id: activeAppId,
                 username,
@@ -1018,9 +1022,10 @@ if (generateForm) {
         const subscriptionId = document.getElementById('license-subscription-id')?.value || null;
 
         try {
+            const headers = Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader());
             const response = await fetch('/api/admin/licenses', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify({ app_id: activeAppId, duration_days: duration, count, subscription_id: subscriptionId, note })
             });
 
