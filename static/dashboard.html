@@ -2,98 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anik X Cheats - Admin Control Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AuthAXC — Software Licensing & HWID Authentication Platform</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <!-- Background Animated Gradients -->
+    <!-- Ambient Background Lighting -->
     <div class="bg-glow-container">
         <div class="glow-orb glow-orb-1"></div>
         <div class="glow-orb glow-orb-2"></div>
-        <div class="glow-orb glow-orb-3"></div>
     </div>
     
     <!-- ================= LOGIN / REGISTER VIEW ================= -->
-    <div id="login-view" class="login-container hidden">
-        <div class="login-box">
-            <div class="login-brand">
-                <i class="fa-solid fa-shield-halved login-brand-logo"></i>
-                <span class="login-brand-title">Anik X Cheats</span>
-                <p class="login-brand-sub">Secure Admin Portal & Licensing Dashboard</p>
+    <div id="login-view" class="modal-overlay" style="background: var(--bg-primary);">
+        <div class="modal-content" style="max-width: 420px; border-radius: var(--radius-md); padding: 28px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div class="logo-monogram" style="width: 44px; height: 44px; font-size: 1.2rem; margin: 0 auto 12px auto; border-radius: 10px;">AXC</div>
+                <h2 style="font-size: 1.4rem; font-weight: 700; letter-spacing: -0.4px;">AuthAXC Portal</h2>
+                <p style="font-size: 0.84rem; color: var(--text-secondary); margin-top: 4px;">Software Licensing & HWID Control Panel</p>
             </div>
             
-            <!-- Auth Navigation Tabs -->
-            <div class="auth-tabs">
-                <button type="button" id="tab-btn-login" class="auth-tab-btn active">
-                    <i class="fa-solid fa-right-to-bracket"></i> Sign In
-                </button>
-                <button type="button" id="tab-btn-register" class="auth-tab-btn">
-                    <i class="fa-solid fa-user-plus"></i> Sign Up
-                </button>
+            <!-- Auth Switcher -->
+            <div style="display: flex; background: var(--bg-primary); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 20px; border: 1px solid var(--border);">
+                <button type="button" id="tab-btn-login" class="btn btn-sm active" style="flex: 1; border-radius: 4px; font-weight: 600;">Sign In</button>
+                <button type="button" id="tab-btn-register" class="btn btn-sm btn-secondary" style="flex: 1; border-radius: 4px; font-weight: 600; border: none;">Sign Up</button>
             </div>
 
             <!-- Sign In Form -->
             <form id="auth-login-form">
                 <div class="input-group">
-                    <label for="login-username">Username</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fa-solid fa-user input-icon"></i>
-                        <input type="text" id="login-username" placeholder="Enter your admin username" required autocomplete="off">
-                    </div>
+                    <label class="input-label" for="login-username">Admin Username</label>
+                    <input type="text" id="login-username" placeholder="admin" required autocomplete="username">
                 </div>
                 
                 <div class="input-group">
-                    <label for="login-password">Password</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fa-solid fa-lock input-icon"></i>
-                        <input type="password" id="login-password" placeholder="••••••••" required>
-                    </div>
+                    <label class="input-label" for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
                 </div>
                 
                 <div class="input-group" id="login-2fa-group" style="display: none;">
-                    <label for="totp_code">Authenticator Code (2FA)</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fa-solid fa-key input-icon"></i>
-                        <input type="text" id="totp_code" placeholder="123456" autocomplete="off" maxlength="6" pattern="\d*">
-                    </div>
+                    <label class="input-label" for="totp_code">Authenticator Code (2FA)</label>
+                    <input type="text" id="totp_code" placeholder="6-digit code" autocomplete="one-time-code" maxlength="6" pattern="\d*">
                 </div>
                 
                 <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 10px;">
-                    Sign In <i class="fa-solid fa-arrow-right"></i>
+                    Sign In to Dashboard <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </form>
 
             <!-- Sign Up Form (Hidden by default) -->
             <form id="auth-register-form" class="hidden">
                 <div class="input-group">
-                    <label for="reg-username">New Admin Username</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fa-solid fa-user input-icon"></i>
-                        <input type="text" id="reg-username" placeholder="Choose a username" required autocomplete="off">
-                    </div>
+                    <label class="input-label" for="reg-username">New Admin Username</label>
+                    <input type="text" id="reg-username" placeholder="Choose username" required autocomplete="off">
                 </div>
                 
                 <div class="input-group">
-                    <label for="reg-password">New Password</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fa-solid fa-lock input-icon"></i>
-                        <input type="password" id="reg-password" placeholder="••••••••" required>
-                    </div>
+                    <label class="input-label" for="reg-password">Password</label>
+                    <input type="password" id="reg-password" placeholder="••••••••" required autocomplete="new-password">
                 </div>
 
                 <div class="input-group">
-                    <label for="reg-confirm-password">Confirm Password</label>
-                    <div class="input-icon-wrapper">
-                        <i class="fa-solid fa-shield-check input-icon"></i>
-                        <input type="password" id="reg-confirm-password" placeholder="••••••••" required>
-                    </div>
+                    <label class="input-label" for="reg-confirm-password">Confirm Password</label>
+                    <input type="password" id="reg-confirm-password" placeholder="••••••••" required autocomplete="new-password">
                 </div>
                 
                 <button type="submit" class="btn btn-green btn-block btn-lg" style="margin-top: 10px;">
@@ -101,807 +78,932 @@
                 </button>
             </form>
 
-            <div id="login-error" class="hidden error-alert"></div>
+            <div id="login-error" class="hidden" style="margin-top: 16px; padding: 10px 14px; background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.3); border-radius: var(--radius-sm); color: #fda4af; font-size: 0.84rem; text-align: center;"></div>
 
-            <div class="auth-security-footer">
-                <i class="fa-solid fa-lock" style="color: var(--color-cyan);"></i> 256-bit AES Encrypted Admin Portal &bull; Anik X Cheats System
+            <div style="margin-top: 24px; text-align: center; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i class="fa-solid fa-shield-halved text-cyan"></i> 256-Bit Encrypted Admin Session
             </div>
         </div>
     </div>
 
-    <!-- ================= DASHBOARD VIEW ================= -->
-    <div id="dashboard-view" class="dashboard-layout hidden">
+    <!-- ================= MAIN DASHBOARD VIEW ================= -->
+    <div id="dashboard-view" class="app-container hidden">
         
-        <!-- Sidebar -->
+        <!-- Sidebar Navigation -->
         <aside class="sidebar">
-            <div class="sidebar-brand">
-                Anik X Cheats
+            <div class="sidebar-header">
+                <a href="#" class="sidebar-logo">
+                    <div class="logo-monogram">AXC</div>
+                    <span class="logo-text">AuthAXC</span>
+                    <span class="logo-badge">PRO</span>
+                </a>
             </div>
 
-            <!-- App Selector -->
-            <div class="sidebar-app-selector">
-                <select id="app-selector" class="form-control" style="font-size: 0.85rem; padding: 8px; background: var(--bg-surface);">
+            <!-- Sidebar App Selector -->
+            <div style="padding: 12px 14px 4px 14px;">
+                <label style="display: block; font-size: 0.68rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;">
+                    Active Application
+                </label>
+                <select id="app-selector" class="app-selector-custom" style="width: 100%; max-width: none;">
                     <!-- Dynamic Options -->
                 </select>
             </div>
             
-            <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" data-tab="overview">
-                    <i class="fa-solid fa-layer-group"></i> Manage Apps
-                </a>
-                <a href="#" class="nav-item" data-tab="licenses">
-                    <i class="fa-solid fa-key"></i> Licenses
-                </a>
-                <a href="#" class="nav-item" data-tab="users">
-                    <i class="fa-solid fa-user-group"></i> Users
-                </a>
-                <a href="#" class="nav-item" data-tab="tokens">
-                    <i class="fa-solid fa-ticket"></i> Tokens
-                </a>
-                <a href="#" class="nav-item" data-tab="subscriptions">
-                    <i class="fa-solid fa-box-open"></i> Subscriptions
-                </a>
-                <a href="#" class="nav-item" data-tab="chats">
-                    <i class="fa-regular fa-comments"></i> Chats
-                </a>
-                <a href="#" class="nav-item" data-tab="sessions">
-                    <i class="fa-solid fa-desktop"></i> Sessions
-                </a>
-                <a href="#" class="nav-item" data-tab="webhooks">
-                    <i class="fa-solid fa-link"></i> Webhooks
-                </a>
-                <a href="#" class="nav-item" data-tab="files">
-                    <i class="fa-solid fa-upload"></i> Files
-                </a>
-                <a href="#" class="nav-item" data-tab="variables">
-                    <i class="fa-solid fa-sliders"></i> Variables
-                </a>
-                <a href="#" class="nav-item" data-tab="rules">
-                    <i class="fa-solid fa-scale-balanced"></i> Rules
-                </a>
-                <a href="#" class="nav-item" data-tab="logs">
-                    <i class="fa-solid fa-list-ul"></i> Event Logs
-                </a>
-                <a href="#" class="nav-item" data-tab="settings">
-                    <i class="fa-solid fa-gear"></i> Settings
-                </a>
-                <a href="#" class="nav-item" data-tab="web-admins">
-                    <i class="fa-solid fa-user-shield"></i> Web Admins
-                </a>
-                <a href="#" class="nav-item" data-tab="api-docs">
-                    <i class="fa-solid fa-code"></i> API Docs
-                </a>
-                <a href="#" class="nav-item" data-tab="resources">
-                    <i class="fa-solid fa-book"></i> Resources
-                </a>
-            </nav>
+            <div class="sidebar-content">
+                <!-- Group: MAIN -->
+                <div class="nav-group">
+                    <span class="nav-group-title">MAIN</span>
+                    <a href="#" class="nav-item active" data-tab="overview">
+                        <i class="fa-solid fa-layer-group"></i> Manage Apps
+                    </a>
+                    <a href="#" class="nav-item" data-tab="licenses">
+                        <i class="fa-solid fa-key"></i> Licenses
+                    </a>
+                    <a href="#" class="nav-item" data-tab="expiring-soon">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Expiring Soon
+                    </a>
+                    <a href="#" class="nav-item" data-tab="users">
+                        <i class="fa-solid fa-user-group"></i> Users
+                    </a>
+                    <a href="#" class="nav-item" data-tab="sessions">
+                        <i class="fa-solid fa-desktop"></i> Sessions
+                    </a>
+                    <a href="#" class="nav-item" data-tab="subscriptions">
+                        <i class="fa-solid fa-box-open"></i> Subscriptions
+                    </a>
+                    <a href="#" class="nav-item" data-tab="tokens">
+                        <i class="fa-solid fa-ticket"></i> Tokens
+                    </a>
+                </div>
+
+                <!-- Group: MANAGEMENT -->
+                <div class="nav-group">
+                    <span class="nav-group-title">MANAGEMENT</span>
+                    <a href="#" class="nav-item" data-tab="rules">
+                        <i class="fa-solid fa-scale-balanced"></i> Rules & HWID
+                    </a>
+                    <a href="#" class="nav-item" data-tab="variables">
+                        <i class="fa-solid fa-sliders"></i> Variables
+                    </a>
+                    <a href="#" class="nav-item" data-tab="webhooks">
+                        <i class="fa-solid fa-link"></i> Webhooks
+                    </a>
+                    <a href="#" class="nav-item" data-tab="files">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Files
+                    </a>
+                    <a href="#" class="nav-item" data-tab="chats">
+                        <i class="fa-regular fa-comments"></i> Chats
+                    </a>
+                    <a href="#" class="nav-item" data-tab="resources">
+                        <i class="fa-solid fa-book"></i> Resources
+                    </a>
+                    <a href="#" class="nav-item" data-tab="api-docs">
+                        <i class="fa-solid fa-code"></i> Seller & API
+                    </a>
+                </div>
+
+                <!-- Group: SECURITY & SYSTEM -->
+                <div class="nav-group">
+                    <span class="nav-group-title">SECURITY & SYSTEM</span>
+                    <a href="#" class="nav-item" data-tab="logs">
+                        <i class="fa-solid fa-list-ul"></i> Event Logs
+                    </a>
+                    <a href="#" class="nav-item" data-tab="web-admins">
+                        <i class="fa-solid fa-user-shield"></i> Web Admins
+                    </a>
+                    <a href="#" class="nav-item" data-tab="settings">
+                        <i class="fa-solid fa-gear"></i> Settings & 2FA
+                    </a>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="admin-user-pill">
+                    <div class="admin-avatar"><i class="fa-solid fa-user"></i></div>
+                    <div class="admin-meta">
+                        <span class="admin-username" id="sidebar-admin-user">Administrator</span>
+                        <span class="admin-role">Super Admin</span>
+                    </div>
+                </div>
+                <button id="logout-btn" class="btn-action" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
         </aside>
 
         <!-- Sidebar Overlay for Mobile -->
         <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
 
-        <!-- Main Panel -->
+        <!-- Main Wrapper -->
         <div class="main-wrapper">
             
-            <!-- Top Navbar -->
-            <header class="top-navbar">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <button id="mobile-menu-btn" class="mobile-toggle-btn" aria-label="Toggle Navigation Menu">
+            <!-- Sticky Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Toggle Menu">
                         <i class="fa-solid fa-bars"></i>
                     </button>
-                    <div class="search-container">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" placeholder="Search pages...">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Application:</span>
+                        <span class="active-app-name-display font-semibold" style="color: var(--text-primary);">---</span>
+                        <span class="badge badge-active" style="font-size: 0.65rem; padding: 1px 6px;">Live</span>
                     </div>
                 </div>
                 
-                <div style="display:flex; align-items:center; gap:20px;">
-                    <!-- Notification Bell -->
-                    <div class="notification-wrapper">
-                        <button id="notification-bell-btn" class="notification-bell-btn" aria-label="Notifications">
-                            <i class="fa-solid fa-bell"></i>
-                            <span id="notification-badge" class="notification-badge hidden">0</span>
+                <div class="header-right">
+                    <!-- Notification Center -->
+                    <div class="notification-bell-wrapper">
+                        <button id="notification-bell-btn" class="btn btn-secondary btn-icon" aria-label="Notifications">
+                            <i class="fa-regular fa-bell"></i>
+                            <span id="notification-badge" class="badge-count hidden" style="position: absolute; top: -4px; right: -4px;">0</span>
                         </button>
                         
-                        <!-- Notification Dropdown -->
+                        <!-- Notification Popover -->
                         <div id="notification-dropdown" class="notification-dropdown hidden">
-                            <div class="notification-dropdown-header">
+                            <div class="notification-header">
                                 <span>Recent System Alerts</span>
-                                <button id="clear-notifications-btn" class="btn-text">Clear All</button>
+                                <button id="clear-notifications-btn" class="btn btn-sm btn-secondary" style="padding: 2px 8px; font-size: 0.72rem;">Clear All</button>
                             </div>
                             <div id="notification-list" class="notification-list">
-                                <div class="notification-empty">No new notifications</div>
+                                <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.84rem;">No alerts recorded</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="top-profile" id="logout-btn">
-                        <div class="profile-avatar">S</div>
-                        <div class="profile-info">
-                            <span class="profile-name" id="admin-display-name">Admin</span>
-                            <span class="profile-role">Admin</span>
-                        </div>
-                        <i class="fa-solid fa-chevron-down" style="font-size:0.7rem; color:var(--text-muted);"></i>
-                    </div>
+                    <button id="refresh-btn" class="btn btn-secondary btn-sm" title="Refresh Current Tab">
+                        <i class="fa-solid fa-arrows-rotate"></i> <span class="desktop-only">Refresh</span>
+                    </button>
                 </div>
             </header>
 
-            <!-- Main Content Area -->
+            <!-- Main Scrollable Content Area -->
             <main class="main-content">
                 
-                <!-- Tab content: Overview (Manage Applications) -->
+                <!-- ================= TAB: OVERVIEW (MANAGE APPS) ================= -->
                 <section id="tab-overview" class="tab-content active-content">
-                    
                     <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Current Application: <span class="active-app-name-display" style="color:var(--text-muted);">---</span> <span style="color:var(--color-green); margin-left: 8px;">Active</span>
+                        <a href="#" onclick="switchTab('overview')">Home</a>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+                        <span>Overview & Manage Apps</span>
                     </div>
 
                     <div class="page-header">
-                        <h1>Manage Applications</h1>
-                        <p>Manage your applications. Applications are the backbone of all the data. <a href="#">Learn More.</a></p>
-                    </div>
-
-                    <!-- Stats Grid -->
-                    <div class="stats-grid">
-                        <div class="stat-block">
-                            <div class="stat-value" id="stat-total-apps">0</div>
-                            <div class="stat-label">Total Apps</div>
+                        <div>
+                            <h1>Application Overview</h1>
+                            <p>Real-time telemetry, license allocations, and application credentials.</p>
                         </div>
-                        <div class="stat-block">
-                            <div class="stat-value" id="stat-active-apps">0</div>
-                            <div class="stat-label">Active</div>
-                        </div>
-                        <div class="stat-block">
-                            <div class="stat-value">0</div>
-                            <div class="stat-label">Paused</div>
-                        </div>
-                        <div class="stat-block">
-                            <div class="stat-value" id="stat-active-sessions">0</div>
-                            <div class="stat-label">Active Sessions</div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" onclick="switchTab('licenses')">
+                                <i class="fa-solid fa-key"></i> View Licenses
+                            </button>
+                            <button id="btn-quick-generate-modal" class="btn btn-primary" onclick="document.getElementById('btn-generate-keys-modal')?.click()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Keys
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Two Column Layout -->
-                    <div class="overview-grid">
+                    <!-- 9-Tile Metric Stats Grid -->
+                    <div class="stats-grid-9">
+                        <div class="stat-tile">
+                            <span class="stat-tile-label">Total Licenses <i class="fa-solid fa-key text-cyan"></i></span>
+                            <span class="stat-tile-value" id="stat-total-licenses">0</span>
+                            <span class="stat-tile-desc">Issued keys</span>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-tile-label">Active <i class="fa-solid fa-circle-check text-emerald"></i></span>
+                            <span class="stat-tile-value text-emerald" id="stat-active-licenses">0</span>
+                            <span class="stat-tile-desc">In-use & valid</span>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-tile-label">Unused <i class="fa-solid fa-ticket text-cyan"></i></span>
+                            <span class="stat-tile-value text-cyan" id="stat-unused-licenses">0</span>
+                            <span class="stat-tile-desc">Awaiting activation</span>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-tile-label">Expired <i class="fa-solid fa-calendar-xmark text-muted"></i></span>
+                            <span class="stat-tile-value text-muted" id="stat-expired-licenses">0</span>
+                            <span class="stat-tile-desc">Elapsed duration</span>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-tile-label">Banned <i class="fa-solid fa-ban text-rose"></i></span>
+                            <span class="stat-tile-value text-rose" id="stat-banned-licenses">0</span>
+                            <span class="stat-tile-desc">Restricted keys</span>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-tile-label">Paused <i class="fa-solid fa-circle-pause text-amber"></i></span>
+                            <span class="stat-tile-value text-amber" id="stat-paused-licenses">0</span>
+                            <span class="stat-tile-desc">Frozen time</span>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-tile-label">Active Sessions <i class="fa-solid fa-desktop text-purple"></i></span>
+                            <span class="stat-tile-value text-purple" id="stat-active-sessions">0</span>
+                            <span class="stat-tile-desc">Connected clients</span>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-tile-label">Today's Activations <i class="fa-solid fa-bolt text-emerald"></i></span>
+                            <span class="stat-tile-value text-emerald" id="stat-today-activations">0</span>
+                            <span class="stat-tile-desc">Last 24 hours</span>
+                        </div>
+                        <div class="stat-tile cursor-pointer" onclick="switchTab('expiring-soon')" title="View Expiring Keys">
+                            <span class="stat-tile-label">Expiring Soon (7d) <i class="fa-solid fa-clock text-amber"></i></span>
+                            <span class="stat-tile-value text-amber" id="stat-expiring-soon">0</span>
+                            <span class="stat-tile-desc">Action recommended</span>
+                        </div>
+                    </div>
+
+                    <!-- Live Activity & Analytics Chart Canvas -->
+                    <div class="chart-container-wrapper">
+                        <div class="chart-header">
+                            <div>
+                                <span class="font-semibold" style="font-size: 0.95rem; color: var(--text-primary);"><i class="fa-solid fa-chart-line text-cyan" style="margin-right: 6px;"></i> Telemetry & Activations Trend</span>
+                                <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">License generation, registrations, and client heartbeat timeline.</p>
+                            </div>
+                            <span class="badge badge-unused" style="font-size: 0.7rem;"><i class="fa-solid fa-circle" style="color: var(--accent); font-size: 0.4rem;"></i> Real-Time</span>
+                        </div>
+                        <canvas id="analytics-chart-canvas" class="chart-canvas"></canvas>
+                    </div>
+
+                    <!-- Credentials & App Management Split -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
                         
-                        <!-- Left Column: Credentials -->
+                        <!-- Left: Credentials Card -->
                         <div class="card">
                             <div class="card-header">
-                                <div style="display:flex; flex-direction:column;">
-                                    <span class="card-title">Application Credentials</span>
-                                    <span style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Simply replace the placeholder code in the example with these.</span>
-                                </div>
+                                <span class="card-title"><i class="fa-solid fa-shield-keyhole text-cyan"></i> Application Secret & ID</span>
                             </div>
                             <div class="card-body">
-                                
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom: 24px;">
-                                    <input type="checkbox" id="display-code-snippet" style="width:auto;">
-                                    <label for="display-code-snippet" style="font-size:0.85rem; color:var(--text-muted);">Display Code Snippet</label>
-                                </div>
-
-                                <div class="credential-item">
-                                    <label>Application Name</label>
-                                    <div class="credential-box">
-                                        <span class="credential-value" id="settings-app-name">---</span>
-                                        <i class="fa-regular fa-copy" onclick="copyToClipboard('settings-app-name')"></i>
+                                <div class="input-group">
+                                    <label class="input-label">Application Name</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="settings-app-name" readonly style="background: rgba(255,255,255,0.02); font-weight: 600;">
+                                        <button class="btn btn-secondary btn-icon" onclick="copyToClipboard('settings-app-name')" title="Copy Name"><i class="fa-regular fa-copy"></i></button>
                                     </div>
                                 </div>
                                 
-                                <div class="credential-item">
-                                    <label>Application ID</label>
-                                    <div class="credential-box">
-                                        <span class="credential-value" id="settings-app-id">---</span>
-                                        <i class="fa-regular fa-copy" onclick="copyToClipboard('settings-app-id')"></i>
+                                <div class="input-group">
+                                    <label class="input-label">Application ID (App ID)</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="settings-app-id" readonly style="background: rgba(255,255,255,0.02); font-family: var(--font-mono); font-size: 0.84rem;">
+                                        <button class="btn btn-secondary btn-icon" onclick="copyToClipboard('settings-app-id')" title="Copy App ID"><i class="fa-regular fa-copy"></i></button>
                                     </div>
                                 </div>
                                 
-                                <div class="credential-item">
-                                    <label>Application Secret</label>
-                                    <div class="credential-box">
-                                        <span class="credential-value" id="settings-app-secret">---</span>
-                                        <i class="fa-regular fa-copy" onclick="copyToClipboard('settings-app-secret', true)"></i>
+                                <div class="input-group">
+                                    <label class="input-label">Application Secret (Seller / Integration Key)</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="settings-app-secret" readonly style="background: rgba(255,255,255,0.02); font-family: var(--font-mono); font-size: 0.84rem;">
+                                        <button id="btn-toggle-secret" class="btn btn-secondary btn-sm"><i class="fa-solid fa-eye"></i></button>
+                                        <button class="btn btn-secondary btn-icon" onclick="copyToClipboard('settings-app-secret', true)" title="Copy Secret"><i class="fa-regular fa-copy"></i></button>
                                     </div>
                                 </div>
-                                
-                                <div class="credential-item">
-                                    <label>Application Version</label>
-                                    <div class="credential-box">
-                                        <span class="credential-value">1.0</span>
-                                        <i class="fa-regular fa-copy"></i>
-                                    </div>
-                                </div>
-
-                                <button class="btn btn-orange" style="margin-top:20px; font-weight: 600;">
-                                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Application Secret
-                                </button>
-
-                                <div class="notice-box">
-                                    <h4><i class="fa-solid fa-circle-info"></i> Notice!</h4>
-                                    <p>Application secrets are only displayed for users using our older API endpoints. If you're using our newer API (1.3), application secrets are not used!</p>
-                                </div>
-
                             </div>
                         </div>
 
-                        <!-- Right Column: My Applications -->
-                        <div>
-                            <div class="app-list-header" style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="font-weight:700; font-size:0.95rem;">My Applications</span>
-                                <div class="search-container" style="width:200px; background:var(--bg-main); padding: 4px 10px;">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                    <input type="text" placeholder="Search applications..." style="font-size:0.8rem;">
+                        <!-- Right: Applications List -->
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fa-solid fa-cubes text-cyan"></i> Registered Applications</span>
+                                <button id="btn-create-app-modal" class="btn btn-primary btn-sm">
+                                    <i class="fa-solid fa-plus"></i> New App
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="applications-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+                                    <!-- Dynamic App Cards injected here -->
                                 </div>
-                            </div>
-                            
-                            <div style="background:var(--bg-main); padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 16px; display:flex; justify-content:space-between;">
-                                <span style="font-size:0.85rem; font-weight:600;">All Applications</span>
-                                <i class="fa-solid fa-chevron-down" style="font-size:0.75rem; color:var(--text-muted);"></i>
-                            </div>
-
-                            <button id="btn-create-app-modal" class="btn btn-blue btn-block" style="margin-bottom: 24px; font-weight: 600; padding: 12px;">
-                                <i class="fa-solid fa-plus"></i> Create Application
-                            </button>
-
-                            <div id="applications-list-container">
-                                <!-- App cards injected here -->
                             </div>
                         </div>
 
                     </div>
                 </section>
 
-                <!-- Tab content: Licenses -->
+                <!-- ================= TAB: LICENSES ================= -->
                 <section id="tab-licenses" class="tab-content hidden">
                     <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Licenses
+                        <a href="#" onclick="switchTab('overview')">Home</a>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+                        <span>License Management</span>
                     </div>
 
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="page-header">
                         <div>
-                            <h1>Licenses</h1>
-                            <p>Manage all generated license keys for your application.</p>
+                            <h1>License Management</h1>
+                            <p>Generate, monitor, filter, extend, and manage serial keys across applications.</p>
                         </div>
-                        <button id="btn-generate-keys-modal" class="btn btn-blue">
-                            <i class="fa-solid fa-plus"></i> Generate Keys
-                        </button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button id="btn-delete-expired" class="btn btn-red" title="One-Click Delete All Expired Licenses">
+                                <i class="fa-solid fa-trash-can"></i> Delete All Expired
+                            </button>
+                            <button id="btn-export-csv" class="btn btn-secondary" title="Export Filtered Keys as CSV">
+                                <i class="fa-solid fa-file-csv"></i> Export CSV
+                            </button>
+                            <button id="btn-generate-keys-modal" class="btn btn-primary">
+                                <i class="fa-solid fa-plus"></i> Generate Keys
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="toolbar-container">
+                        <div class="toolbar-left">
+                            <div class="search-input-box">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="search-input" placeholder="Search key, user, HWID, note..." autocomplete="off">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted);">
+                                <label for="filter-status">Status:</label>
+                                <select id="filter-status">
+                                    <option value="all">All Licenses</option>
+                                    <option value="active">Active</option>
+                                    <option value="unused">Unused</option>
+                                    <option value="used">Used</option>
+                                    <option value="expired">Expired</option>
+                                    <option value="paused">Paused</option>
+                                    <option value="banned">Banned</option>
+                                    <option value="revoked">Revoked</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="toolbar-right">
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted);">
+                                <label for="licenses-per-page">Per Page:</label>
+                                <select id="licenses-per-page">
+                                    <option value="15">15</option>
+                                    <option value="25" selected>25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            <button id="btn-refresh-licenses" class="btn btn-secondary btn-icon" title="Refresh Table">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Actions Bar (Shown when >= 1 license selected) -->
+                    <div id="bulk-actions-bar" class="bulk-bar hidden">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="bulk-count-pill" id="bulk-selected-count">0</span>
+                            <span style="font-size: 0.85rem; font-weight: 600;">licenses selected</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <select id="bulk-action-select" style="padding: 6px 12px; font-size: 0.82rem;">
+                                <option value="">-- Choose Bulk Action --</option>
+                                <option value="extend">Extend Additional Time</option>
+                                <option value="reset_hwid">Reset HWID Signature</option>
+                                <option value="pause">Pause License</option>
+                                <option value="unpause">Unpause License</option>
+                                <option value="ban">Ban License</option>
+                                <option value="unban">Unban License</option>
+                                <option value="revoke">Revoke License</option>
+                                <option value="delete">Delete Permanently</option>
+                            </select>
+                            <button id="btn-apply-bulk-action" class="btn btn-primary btn-sm">
+                                <i class="fa-solid fa-check"></i> Apply
+                            </button>
+                            <button id="btn-clear-selection" class="btn btn-secondary btn-sm">
+                                Clear Selection
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Data Table View -->
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 36px; text-align: center;">
+                                            <input type="checkbox" id="select-all-licenses" title="Select All On Page">
+                                        </th>
+                                        <th>License Key</th>
+                                        <th>Status</th>
+                                        <th>Duration</th>
+                                        <th>Bound User</th>
+                                        <th>Device (HWID)</th>
+                                        <th>Expires At</th>
+                                        <th>Remaining</th>
+                                        <th style="text-align: right; min-width: 140px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="license-table-body">
+                                    <!-- Populated via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Dedicated Mobile Cards View (Hidden on desktop, shown on mobile <=768px) -->
+                        <div id="mobile-licenses-list" class="mobile-cards-list" style="padding: 12px;">
+                            <!-- Populated via JavaScript -->
+                        </div>
+
+                        <div id="no-licenses-msg" class="hidden" style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+                            <i class="fa-solid fa-key" style="font-size: 2rem; color: var(--text-dim); margin-bottom: 10px; display: block;"></i>
+                            <span style="font-weight: 600; display: block;">No licenses found</span>
+                            <span style="font-size: 0.82rem;">Try adjusting your search query or status filter.</span>
+                        </div>
+
+                        <!-- Table Pagination Bar -->
+                        <div class="pagination-bar">
+                            <span id="licenses-pagination-info">Showing 0 of 0</span>
+                            <div class="pagination-controls" id="licenses-pagination-buttons">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: EXPIRING SOON ================= -->
+                <section id="tab-expiring-soon" class="tab-content hidden">
+                    <div class="breadcrumb">
+                        <a href="#" onclick="switchTab('overview')">Home</a>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+                        <span>Expiring Soon</span>
+                    </div>
+
+                    <div class="page-header">
+                        <div>
+                            <h1>Expiring Soon Licenses</h1>
+                            <p>Proactively monitor and grant time extensions to licenses nearing expiration.</p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label class="input-label" for="expiring-timeframe" style="margin: 0;">Timeframe:</label>
+                            <select id="expiring-timeframe" style="width: auto;">
+                                <option value="3">Next 3 Days</option>
+                                <option value="7" selected>Next 7 Days</option>
+                                <option value="14">Next 14 Days</option>
+                                <option value="30">Next 30 Days</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-body" style="padding:0;">
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>License Key</th>
-                                            <th>Used By</th>
-                                            <th>Duration</th>
-                                            <th>Device (HWID)</th>
-                                            <th>Expires At</th>
-                                            <th>Status</th>
-                                            <th style="text-align:center;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="license-table-body">
-                                        <!-- Dynamic rows -->
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>License Key</th>
+                                        <th>User</th>
+                                        <th>Expiration Date</th>
+                                        <th>Time Remaining</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Quick Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expiring-table-body">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Mobile Cards Container for Expiring Keys -->
+                        <div id="mobile-expiring-list" class="mobile-cards-list" style="padding: 12px;"></div>
+
+                        <div id="no-expiring-msg" class="hidden" style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+                            <i class="fa-solid fa-circle-check" style="font-size: 2rem; color: var(--color-emerald); margin-bottom: 10px; display: block;"></i>
+                            <span style="font-weight: 600; display: block;">All licenses healthy</span>
+                            <span style="font-size: 0.82rem;">No licenses are expiring within the selected timeframe.</span>
                         </div>
                     </div>
                 </section>
 
-                <!-- Tab content: Users -->
+                <!-- ================= TAB: USERS ================= -->
                 <section id="tab-users" class="tab-content hidden">
                     <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Users
+                        <a href="#" onclick="switchTab('overview')">Home</a>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+                        <span>User Management</span>
                     </div>
 
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="page-header">
                         <div>
-                            <h1>Users</h1>
-                            <p>Manage direct application user accounts.</p>
+                            <h1>User Accounts</h1>
+                            <p>Direct application user registrations, password records, and hardware IDs.</p>
                         </div>
-                        <button id="btn-create-user-modal" class="btn btn-blue">
+                        <button id="btn-create-user-modal" class="btn btn-primary">
                             <i class="fa-solid fa-user-plus"></i> Create User
                         </button>
                     </div>
 
-                    <div class="card">
-                        <div class="card-body" style="padding:0;">
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Username</th>
-                                            <th>Associated License</th>
-                                            <th>Device (HWID)</th>
-                                            <th>Created At</th>
-                                            <th style="text-align:center;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="user-table-body">
-                                        <!-- Dynamic rows -->
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div class="toolbar-container">
+                        <div class="search-input-box" style="flex: 1; max-width: 320px;">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="user-search-input" placeholder="Search username, license, HWID..." autocomplete="off">
                         </div>
-                    </div>
-                </section>
-
-                <!-- Tab content: Logs -->
-                <section id="tab-logs" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Event Logs
-                    </div>
-
-                    <div class="page-header">
-                        <h1>Event Logs</h1>
-                        <p>Track application security events and user actions in real-time.</p>
                     </div>
 
                     <div class="card">
-                        <div class="card-body" style="padding:0;">
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Timestamp</th>
-                                            <th>Event Type</th>
-                                            <th>Description / Details</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="logs-table-body">
-                                        <!-- Dynamic rows -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Tab content: Settings -->
-                <section id="tab-settings" class="tab-content hidden">
-                    <div class="page-header">
-                        <h1>Settings</h1>
-                        <p>Application and Security settings.</p>
-                    </div>
-                    
-                    <div class="card" style="max-width: 600px; margin-bottom: 20px;">
-                        <div class="card-header">
-                            <h2 class="card-title">Two-Factor Authentication (2FA)</h2>
-                        </div>
-                        <div class="card-body">
-                            <p style="color: var(--text-muted); margin-bottom: 20px;">Protect your admin account by requiring an authenticator code when logging in.</p>
-                            
-                            <div id="2fa-status-panel">
-                                <p id="2fa-status-text" style="font-weight: 500; margin-bottom: 15px;">Checking status...</p>
-                                <button id="btn-enable-2fa" class="btn btn-blue hidden">Enable 2FA</button>
-                                <button id="btn-disable-2fa" class="btn btn-red hidden">Disable 2FA</button>
-                            </div>
-                            
-                            <div id="2fa-setup-panel" class="hidden" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-                                <h3>Setup Authenticator</h3>
-                                <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 0.9rem;">Scan this QR code with Google Authenticator or Authy.</p>
-                                <img id="2fa-qr-code" src="" alt="QR Code" style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
-                                
-                                <div class="input-group" style="max-width: 300px;">
-                                    <label>Enter 6-digit code to verify:</label>
-                                    <div style="display: flex; gap: 10px;">
-                                        <input type="text" id="setup-2fa-code" placeholder="123456" maxlength="6" style="flex: 1;">
-                                        <button id="btn-verify-2fa" class="btn btn-green">Verify</button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div id="2fa-disable-panel" class="hidden" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-                                <h3>Disable 2FA</h3>
-                                <div class="input-group" style="max-width: 300px;">
-                                    <label>Enter 6-digit code to confirm:</label>
-                                    <div style="display: flex; gap: 10px;">
-                                        <input type="text" id="disable-2fa-code" placeholder="123456" maxlength="6" style="flex: 1;">
-                                        <button id="btn-confirm-disable-2fa" class="btn btn-red">Disable</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card" style="max-width: 600px;">
-                        <div class="card-header">
-                            <span class="card-title">Danger Zone</span>
-                        </div>
-                        <div class="card-body">
-                            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:16px;">Deleting this application will permanently remove all associated users, licenses, and event logs. This action cannot be reversed.</p>
-                            <button id="btn-delete-app" class="btn btn-red">
-                                <i class="fa-solid fa-trash-can"></i> Delete Application
-                            </button>
-                        </div>
-                    </div>
-                </section>
-                
-                <!-- Tab content: Web Admins -->
-                <section id="tab-web-admins" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Platform Admins</a> <i class="fa-solid fa-chevron-right"></i> Manage Web Admins
-                    </div>
-
-                    <div class="page-header">
-                        <h1>Web Admins Management</h1>
-                        <p>View and manage all administrators who have access to this control panel.</p>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">Registered Admins</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Username</th>
-                                            <th>Created At</th>
-                                            <th>Role</th>
-                                            <th style="width: 100px; text-align: center;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="admins-table-body">
-                                        <!-- Admins will be populated here -->
-                                    </tbody>
-                                </table>
-                                <div id="no-admins-msg" class="empty-state hidden">
-                                    <p>No other admins found.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                
-                <!-- Tab content: Subscriptions -->
-                <section id="tab-subscriptions" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Subscriptions
-                    </div>
-                    
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h1>Subscriptions</h1>
-                            <p>Manage access levels (e.g., Free, VIP, Premium) for your users.</p>
-                        </div>
-                        <button class="btn btn-blue" id="btn-create-subscription"><i class="fa-solid fa-plus"></i> Create Subscription</button>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-body">
-                            <table class="data-table">
+                        <div class="table-responsive">
+                            <table class="table">
                                 <thead>
                                     <tr>
-                                        <th>NAME</th>
-                                        <th>LEVEL</th>
-                                        <th>ID</th>
-                                        <th style="text-align:center;">ACTIONS</th>
+                                        <th>Username</th>
+                                        <th>Associated Key</th>
+                                        <th>Hardware Fingerprint (HWID)</th>
+                                        <th>Created Date</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="subscriptions-table-body">
+                                <tbody id="user-table-body">
+                                    <!-- Dynamic rows -->
                                 </tbody>
                             </table>
-                            <div id="no-subscriptions-msg" class="empty-state hidden">
-                                <i class="fa-solid fa-box-open" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 10px;"></i>
-                                <p>No subscriptions found.</p>
-                            </div>
+                        </div>
+
+                        <!-- Mobile Cards Container for Users -->
+                        <div id="mobile-users-list" class="mobile-cards-list" style="padding: 12px;"></div>
+
+                        <div id="no-users-msg" class="hidden" style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+                            <p>No registered users found.</p>
                         </div>
                     </div>
                 </section>
 
-                <!-- Tab content: Tokens -->
-                <section id="tab-tokens" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Tokens
-                    </div>
-                    
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h1>Tokens (Redeemable Codes)</h1>
-                            <p>Generate keys that users can redeem to add time/subscriptions to their account.</p>
-                        </div>
-                        <button class="btn btn-blue" id="btn-generate-tokens"><i class="fa-solid fa-ticket"></i> Generate Tokens</button>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-body">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>TOKEN</th>
-                                        <th>DURATION</th>
-                                        <th>STATUS</th>
-                                        <th>USED BY</th>
-                                        <th style="text-align:center;">ACTIONS</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tokens-table-body">
-                                </tbody>
-                            </table>
-                            <div id="no-tokens-msg" class="empty-state hidden">
-                                <i class="fa-solid fa-ticket" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 10px;"></i>
-                                <p>No tokens found.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Tab content: Variables -->
-                <section id="tab-variables" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Variables
-                    </div>
-                    
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h1>Variables</h1>
-                            <p>Store secure strings to be retrieved by the client application.</p>
-                        </div>
-                        <button class="btn btn-blue" id="btn-create-variable"><i class="fa-solid fa-plus"></i> Create Variable</button>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-body">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>NAME</th>
-                                        <th>VALUE</th>
-                                        <th style="text-align:center;">ACTIONS</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="variables-table-body">
-                                </tbody>
-                            </table>
-                            <div id="no-variables-msg" class="empty-state hidden">
-                                <i class="fa-solid fa-sliders" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 10px;"></i>
-                                <p>No variables found.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Tab content: Webhooks -->
-                <section id="tab-webhooks" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Webhooks
-                    </div>
-                    
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h1>Webhooks</h1>
-                            <p>Store secure endpoint URLs that can be requested by the client application.</p>
-                        </div>
-                        <button class="btn btn-blue" id="btn-create-webhook"><i class="fa-solid fa-plus"></i> Create Webhook</button>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-body">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>NAME</th>
-                                        <th>URL</th>
-                                        <th style="text-align:center;">ACTIONS</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="webhooks-table-body">
-                                </tbody>
-                            </table>
-                            <div id="no-webhooks-msg" class="empty-state hidden">
-                                <i class="fa-solid fa-link" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 10px;"></i>
-                                <p>No webhooks found.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-
-
-                <!-- Sessions Tab -->
+                <!-- ================= TAB: SESSIONS ================= -->
                 <section id="tab-sessions" class="tab-content hidden">
                     <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Active Sessions
-                    </div>
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h1>Active Sessions</h1>
-                            <p>Track and manage active client logins.</p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-body" style="padding:0;">
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Session ID</th>
-                                            <th>Username</th>
-                                            <th>HWID</th>
-                                            <th>Login Time</th>
-                                            <th style="width: 80px; text-align:center;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="sessions-table-body">
-                                        <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No active sessions</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Files Tab -->
-                <section id="tab-files" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> File Hosting
-                    </div>
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h1>File Hosting</h1>
-                            <p>Secure files that only authenticated clients can download.</p>
-                        </div>
-                        <button id="btn-upload-file-modal" class="btn btn-blue"><i class="fa-solid fa-upload"></i> Upload File</button>
-                    </div>
-                    <div class="card">
-                        <div class="card-body" style="padding:0;">
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Filename</th>
-                                            <th>Size</th>
-                                            <th>Uploaded At</th>
-                                            <th style="width: 80px; text-align:center;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="files-table-body">
-                                        <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No files uploaded</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Chats Tab -->
-                <section id="tab-chats" class="tab-content hidden">
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h1>Global Chat</h1>
-                            <p>View client messages.</p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Message</th>
-                                    <th>Time</th>
-                                    <th style="width: 80px; text-align:center;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="chats-table-body">
-                                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No messages</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- Rules Tab -->
-                <section id="tab-rules" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Security Rules
+                        <a href="#" onclick="switchTab('overview')">Home</a>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+                        <span>Active Client Sessions</span>
                     </div>
 
                     <div class="page-header">
-                        <h1>Security & Protection Rules</h1>
-                        <p>Configure hardware locking, VPN protection, and anti-debugger policies for this application.</p>
+                        <div>
+                            <h1>Online Client Sessions</h1>
+                            <p>Real-time active hardware sessions and authenticated devices.</p>
+                        </div>
                     </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Username / Key</th>
+                                        <th>Device HWID</th>
+                                        <th>IP Address</th>
+                                        <th>Login Timestamp</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sessions-table-body">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: SUBSCRIPTIONS ================= -->
+                <section id="tab-subscriptions" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Subscription Tiers</h1>
+                            <p>Manage access levels (Free, Standard, VIP, Enterprise) for software features.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-create-subscription"><i class="fa-solid fa-plus"></i> New Subscription</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Tier Name</th>
+                                        <th>Level Number</th>
+                                        <th>Subscription ID</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subscriptions-table-body"></tbody>
+                            </table>
+                        </div>
+                        <div id="no-subscriptions-msg" class="hidden" style="padding: 30px; text-align: center; color: var(--text-muted);">No subscriptions configured</div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: TOKENS ================= -->
+                <section id="tab-tokens" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Redeemable Tokens</h1>
+                            <p>Create activation vouchers that users can redeem to upgrade time or tiers.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-generate-tokens"><i class="fa-solid fa-ticket"></i> Generate Tokens</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Token Code</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                        <th>Redeemed By</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tokens-table-body"></tbody>
+                            </table>
+                        </div>
+                        <div id="no-tokens-msg" class="hidden" style="padding: 30px; text-align: center; color: var(--text-muted);">No tokens found</div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: CHATS ================= -->
+                <section id="tab-chats" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Live User Chats & Support</h1>
+                            <p>Inspect incoming messages and communications from authenticated client software.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="chats-container" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                                <div style="text-align: center; color: var(--text-muted); padding: 20px;">No messages received.</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: WEBHOOKS ================= -->
+                <section id="tab-webhooks" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Secure Webhooks</h1>
+                            <p>Store encrypted webhook URLs to trigger external endpoints securely.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-create-webhook"><i class="fa-solid fa-plus"></i> Add Webhook</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Webhook Identifier</th>
+                                        <th>Target Endpoint URL</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="webhooks-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: FILES ================= -->
+                <section id="tab-files" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Encrypted File Storage</h1>
+                            <p>Upload binary payloads and assets for authenticated client download.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-upload-file-modal"><i class="fa-solid fa-cloud-arrow-up"></i> Upload File</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>File Name</th>
+                                        <th>Size</th>
+                                        <th>Uploaded Date</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="files-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: VARIABLES ================= -->
+                <section id="tab-variables" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Dynamic Server Variables</h1>
+                            <p>Store remote configuration values and strings dispatched to clients.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-create-variable"><i class="fa-solid fa-plus"></i> New Variable</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Variable Key</th>
+                                        <th>Encrypted Value</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="variables-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: RULES & HWID ================= -->
+                <section id="tab-rules" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Security Rules & HWID Settings</h1>
+                            <p>Configure hardware locking, VPN detection, and developer mode protection.</p>
+                        </div>
+                    </div>
+
                     <div class="card" style="max-width: 680px;">
                         <div class="card-header">
-                            <span class="card-title"><i class="fa-solid fa-shield-halved" style="color:var(--color-cyan);"></i> Application Protection Settings</span>
+                            <span class="card-title"><i class="fa-solid fa-shield-halved text-cyan"></i> Application Protection Rules</span>
                         </div>
                         <div class="card-body">
                             <form id="rules-form">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start; padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 16px;">
-                                    <div style="flex:1; padding-right:16px;">
-                                        <label style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.95rem; color:#fff; margin-bottom:4px;">
-                                            <i class="fa-solid fa-microchip" style="color:var(--color-blue);"></i> Hardware ID (HWID) Lock
-                                        </label>
-                                        <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">Strictly restrict user logins to their registered computer hardware fingerprint.</p>
-                                    </div>
-                                    <input type="checkbox" id="rule-hwid-lock" checked style="width:22px; height:22px; cursor:pointer; accent-color:var(--color-blue);">
+                                <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px;">
+                                    <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                                        <div>
+                                            <span style="display: block; font-weight: 600; font-size: 0.9rem;">Hardware ID (HWID) Lock</span>
+                                            <span style="font-size: 0.78rem; color: var(--text-secondary);">Bind licenses to the first device and block multi-computer sharing.</span>
+                                        </div>
+                                        <input type="checkbox" id="rule-hwid-lock" checked>
+                                    </label>
+
+                                    <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                                        <div>
+                                            <span style="display: block; font-weight: 600; font-size: 0.9rem;">Block VPN & Proxy Logins</span>
+                                            <span style="font-size: 0.78rem; color: var(--text-secondary);">Enforce direct client IP connections.</span>
+                                        </div>
+                                        <input type="checkbox" id="rule-block-vpn">
+                                    </label>
+
+                                    <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                                        <div>
+                                            <span style="display: block; font-weight: 600; font-size: 0.9rem;">Block Developer / Debug Mode</span>
+                                            <span style="font-size: 0.78rem; color: var(--text-secondary);">Reject client requests originating from debugged environments.</span>
+                                        </div>
+                                        <input type="checkbox" id="rule-block-dev">
+                                    </label>
                                 </div>
 
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start; padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 16px;">
-                                    <div style="flex:1; padding-right:16px;">
-                                        <label style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.95rem; color:#fff; margin-bottom:4px;">
-                                            <i class="fa-solid fa-user-shield" style="color:var(--color-orange);"></i> Anti-VPN & Proxy Shield
-                                        </label>
-                                        <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">Block authentication requests originating from known proxies, VPNs, and datacenter IPs.</p>
-                                    </div>
-                                    <input type="checkbox" id="rule-block-vpn" style="width:22px; height:22px; cursor:pointer; accent-color:var(--color-blue);">
+                                <div class="input-group">
+                                    <label class="input-label" for="rule-key-prefix">Default Key Prefix</label>
+                                    <input type="text" id="rule-key-prefix" placeholder="AXC" style="font-family: var(--font-mono); font-weight: 600;">
                                 </div>
 
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start; padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 16px;">
-                                    <div style="flex:1; padding-right:16px;">
-                                        <label style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.95rem; color:#fff; margin-bottom:4px;">
-                                            <i class="fa-solid fa-bug-slash" style="color:var(--color-purple);"></i> Anti-Debugger & Dev Mode Protection
-                                        </label>
-                                        <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">Instruct the client SDK to immediately terminate if active debuggers or reverse engineering tools are detected.</p>
-                                    </div>
-                                    <input type="checkbox" id="rule-block-dev" style="width:22px; height:22px; cursor:pointer; accent-color:var(--color-blue);">
-                                </div>
-
-                                <div style="display:flex; justify-content:space-between; align-items:center; padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 24px;">
-                                    <div style="flex:1; padding-right:16px;">
-                                        <label style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.95rem; color:#fff; margin-bottom:4px;">
-                                            <i class="fa-solid fa-key" style="color:var(--color-green);"></i> Custom License Key Prefix
-                                        </label>
-                                        <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">Default is <strong>AnikXCheats</strong>. Example: Setting <code>MYBRAND</code> generates <code>MYBRAND-xxxx</code> keys.</p>
-                                    </div>
-                                    <input type="text" id="rule-key-prefix" placeholder="AnikXCheats" value="AnikXCheats" style="width:200px; font-family:var(--font-mono); font-weight:600; text-transform:uppercase;" autocomplete="off">
-                                </div>
-
-                                <button type="submit" class="btn btn-blue" style="padding: 10px 24px; font-weight:600;"><i class="fa-solid fa-floppy-disk"></i> Save Security Rules</button>
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Security Rules
+                                </button>
                             </form>
                         </div>
                     </div>
                 </section>
 
-                <!-- API Docs Tab -->
-                <section id="tab-api-docs" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> API Docs (Seller Integration)
-                    </div>
-
+                <!-- ================= TAB: EVENT LOGS ================= -->
+                <section id="tab-logs" class="tab-content hidden">
                     <div class="page-header">
-                        <h1>Seller API Documentation</h1>
-                        <p>Integrate key generation and user creation directly into your custom website, shop, or Discord bot.</p>
+                        <div>
+                            <h1>Event Logs & Audit Trail</h1>
+                            <p>Real-time security telemetry and administration history.</p>
+                        </div>
                     </div>
 
-                    <!-- API Docs Card -->
-                    <div class="card" style="margin-bottom: 30px;">
-                        <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
-                            <span class="card-title"><i class="fa-solid fa-code" style="color:var(--color-cyan);"></i> Seller API Documentation (Automated Key & User Generation)</span>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Event Type</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-table-body"></tbody>
+                            </table>
                         </div>
-                        <div class="card-body" style="padding-top: 20px;">
-                            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                                <h3 style="color: var(--color-blue); margin-bottom: 8px; font-size: 1.1rem;"><i class="fa-solid fa-key"></i> 1. Generate License Keys via External Website / Bot</h3>
-                                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">Send an HTTP <code>POST</code> request from your website backend, Discord bot, or payment gateway (Sellix / WooCommerce / Shoppy) to automatically issue keys using your <strong>App Secret Key</strong>.</p>
+                        <div id="no-logs-msg" class="hidden" style="padding: 30px; text-align: center; color: var(--text-muted);">No event logs recorded</div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: SETTINGS & 2FA ================= -->
+                <section id="tab-settings" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Account & Security Settings</h1>
+                            <p>Two-factor authentication (2FA) and application management.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                        
+                        <!-- 2FA Box -->
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fa-solid fa-shield-keyhole text-cyan"></i> Two-Factor Authentication</span>
+                            </div>
+                            <div class="card-body">
+                                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px;">
+                                    Require an authenticator app (Google Authenticator, Authy) when signing into the admin panel.
+                                </p>
                                 
-                                <div style="background: #090d16; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); font-family: var(--font-mono); font-size: 0.85rem; color: #e2e8f0; overflow-x: auto; margin-bottom: 10px;">
-                                    <span style="color:#f472b6; font-weight:bold;">POST</span> <span style="color:#60a5fa;"><span class="api-domain-text">https://auth.anikxcheatx.com</span>/api/seller/generate</span><br><br>
-                                    <span style="color:#64748b;">// Request Body (JSON):</span><br>
-                                    {<br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"app_id"</span>: <span style="color:#c084fc;">"<span class="active-app-id-text">YOUR_APP_ID</span>"</span>,<br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"seller_key"</span>: <span style="color:#c084fc;">"YOUR_APP_SECRET"</span>, <span style="color:#64748b;">// Found in Manage Apps (Application Secret)</span><br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"duration_days"</span>: <span style="color:#f59e0b;">30</span>, <span style="color:#64748b;">// 0 for Lifetime</span><br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"count"</span>: <span style="color:#f59e0b;">1</span>,<br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"note"</span>: <span style="color:#c084fc;">"Automated Web Purchase"</span><br>
-                                    }
+                                <div id="2fa-status-panel">
+                                    <p id="2fa-status-text" style="font-weight: 600; margin-bottom: 14px;">Checking status...</p>
+                                    <button id="btn-enable-2fa" class="btn btn-primary hidden">Enable 2FA Protection</button>
+                                    <button id="btn-disable-2fa" class="btn btn-red hidden">Disable 2FA</button>
+                                </div>
+                                
+                                <div id="2fa-setup-panel" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                                    <span style="font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 8px;">Scan Authenticator QR Code:</span>
+                                    <img id="2fa-qr-code" src="" alt="QR Code" style="background: white; padding: 8px; border-radius: var(--radius-sm); margin-bottom: 12px; width: 180px; height: 180px;">
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="setup-2fa-code" placeholder="6-digit code" maxlength="6" style="flex: 1;">
+                                        <button id="btn-verify-2fa" class="btn btn-green">Verify & Activate</button>
+                                    </div>
+                                </div>
+                                
+                                <div id="2fa-disable-panel" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="disable-2fa-code" placeholder="6-digit code" maxlength="6" style="flex: 1;">
+                                        <button id="btn-confirm-disable-2fa" class="btn btn-red">Confirm Disable</button>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
-                                <h3 style="color: var(--color-green); margin-bottom: 8px; font-size: 1.1rem;"><i class="fa-solid fa-user-plus"></i> 2. Create User Account directly via API</h3>
-                                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">Allow your web users to create an account directly from your custom website form.</p>
-                                
-                                <div style="background: #090d16; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); font-family: var(--font-mono); font-size: 0.85rem; color: #e2e8f0; overflow-x: auto;">
-                                    <span style="color:#f472b6; font-weight:bold;">POST</span> <span style="color:#60a5fa;"><span class="api-domain-text">https://auth.anikxcheatx.com</span>/api/seller/user/create</span><br><br>
-                                    <span style="color:#64748b;">// Request Body (JSON):</span><br>
+                        <!-- Danger Zone -->
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title text-rose"><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</span>
+                            </div>
+                            <div class="card-body">
+                                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px;">
+                                    Permanently delete the current application and all its users, keys, and session records.
+                                </p>
+                                <button id="btn-delete-app" class="btn btn-red">
+                                    <i class="fa-solid fa-trash-can"></i> Delete Application
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- ================= TAB: WEB ADMINS ================= -->
+                <section id="tab-web-admins" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Web Administrators</h1>
+                            <p>Authorized administrator accounts with control panel access.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Admin Username</th>
+                                        <th>Registration Date</th>
+                                        <th>Access Role</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admins-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= TAB: SELLER & API DOCS ================= -->
+                <section id="tab-api-docs" class="tab-content hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1>Seller & Developer API</h1>
+                            <p>Integrate automated store purchases (Sellix, Shoppy, WooCommerce) with your licensing system.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 18px;">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title"><i class="fa-solid fa-bolt text-cyan"></i> Automated License Generation API</span>
+                            </div>
+                            <div class="card-body">
+                                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px;">
+                                    Issue keys automatically after a customer completes checkout on your website.
+                                </p>
+                                <div style="background: var(--bg-input); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.84rem; overflow-x: auto;">
+                                    <span style="color: #f472b6; font-weight: bold;">POST</span> <span class="text-cyan"><span class="api-domain-text">https://api.domain.com</span>/api/seller/generate</span><br><br>
+                                    <span style="color: #64748b;">// Request Body (JSON):</span><br>
                                     {<br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"app_id"</span>: <span style="color:#c084fc;">"<span class="active-app-id-text">YOUR_APP_ID</span>"</span>,<br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"seller_key"</span>: <span style="color:#c084fc;">"YOUR_APP_SECRET"</span>, <span style="color:#64748b;">// Found in Manage Apps (Application Secret)</span><br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"username"</span>: <span style="color:#c084fc;">"customer_user"</span>,<br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"password"</span>: <span style="color:#c084fc;">"customer_pass"</span>,<br>
-                                    &nbsp;&nbsp;<span style="color:#34d399;">"duration_days"</span>: <span style="color:#f59e0b;">30</span><br>
+                                    &nbsp;&nbsp;<span style="color: #34d399;">"app_id"</span>: <span style="color: #c084fc;">"<span class="active-app-id-text">YOUR_APP_ID</span>"</span>,<br>
+                                    &nbsp;&nbsp;<span style="color: #34d399;">"seller_key"</span>: <span style="color: #c084fc;">"YOUR_APP_SECRET"</span>,<br>
+                                    &nbsp;&nbsp;<span style="color: #34d399;">"count"</span>: <span style="color: #f59e0b;">1</span>,<br>
+                                    &nbsp;&nbsp;<span style="color: #34d399;">"duration_days"</span>: <span style="color: #f59e0b;">30</span><br>
                                     }
                                 </div>
                             </div>
@@ -909,36 +1011,29 @@
                     </div>
                 </section>
 
-                <!-- Resources Tab -->
+                <!-- ================= TAB: RESOURCES ================= -->
                 <section id="tab-resources" class="tab-content hidden">
-                    <div class="breadcrumb">
-                        <i class="fa-solid fa-house" style="color:var(--text-main);"></i> <a href="#">Manage Apps</a> <i class="fa-solid fa-chevron-right"></i> Resources
-                    </div>
-                    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="page-header">
                         <div>
-                            <h1>Resources</h1>
-                            <p>Documentation and guides for your users.</p>
+                            <h1>Documentation & Resources</h1>
+                            <p>Knowledge base articles and tutorials for your software users.</p>
                         </div>
-                        <button id="btn-add-resource-modal" class="btn btn-blue"><i class="fa-solid fa-plus"></i> Add Resource</button>
+                        <button id="btn-add-resource-modal" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Resource</button>
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">Custom Notes & Resources</span>
-                        </div>
-                        <div class="card-body">
+                        <div class="table-responsive">
                             <table class="table">
                                 <thead>
                                     <tr>
                                         <th>Title</th>
-                                    <th>Content Preview</th>
-                                    <th style="width: 80px; text-align:center;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="resources-table-body">
-                                <tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:20px;">No resources found</td></tr>
-                            </tbody>
-                        </table>
+                                        <th>Preview Content</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resources-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -946,20 +1041,244 @@
         </div>
     </div>
 
-    <!-- Modals -->
+    <!-- ================= MODALS & DIALOGS ================= -->
+    
+    <!-- Generate Keys Modal -->
+    <div id="generate-keys-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-wand-magic-sparkles text-cyan"></i> Generate Licenses</h3>
+                <button id="btn-close-generate-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="generate-form">
+                <div style="display: flex; gap: 12px; margin-bottom: 14px;">
+                    <div style="flex: 1;">
+                        <label class="input-label" for="count">Quantity</label>
+                        <input type="number" id="count" value="1" min="1" max="100" required>
+                    </div>
+                    <div style="flex: 1.5;">
+                        <label class="input-label" for="gen-custom-prefix">Key Prefix</label>
+                        <input type="text" id="gen-custom-prefix" placeholder="AXC" style="font-family: var(--font-mono); font-weight: 600; text-transform: uppercase;">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="duration">Duration Preset</label>
+                    <select id="duration" required>
+                        <option value="1">1 Day</option>
+                        <option value="3">3 Days</option>
+                        <option value="7">7 Days</option>
+                        <option value="15">15 Days</option>
+                        <option value="30" selected>30 Days</option>
+                        <option value="60">60 Days</option>
+                        <option value="90">90 Days</option>
+                        <option value="365">1 Year (365 Days)</option>
+                        <option value="0">Lifetime</option>
+                        <option value="custom">-- Custom Duration --</option>
+                    </select>
+                </div>
+
+                <!-- Custom Duration Sub-Row -->
+                <div id="custom-duration-wrapper" class="hidden" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 14px;">
+                    <span style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--accent); margin-bottom: 8px;">Custom Expiration Time:</span>
+                    <div style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label class="input-label" style="font-size: 0.72rem;">Days</label>
+                            <input type="number" id="custom-days" min="0" value="0" placeholder="0">
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="input-label" style="font-size: 0.72rem;">Hours</label>
+                            <input type="number" id="custom-hours" min="0" max="23" value="0" placeholder="0">
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="input-label" style="font-size: 0.72rem;">Minutes</label>
+                            <input type="number" id="custom-minutes" min="0" max="59" value="0" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="license-subscription-id">Subscription Tier (Optional)</label>
+                    <select id="license-subscription-id">
+                        <option value="">Default (No Subscription Level)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="note">Admin Note / Customer Ref</label>
+                    <input type="text" id="note" placeholder="e.g. VIP Customer, Discord giveaway..." autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 18px;">
+                    <i class="fa-solid fa-key"></i> Generate Licenses
+                </button>
+            </form>
+
+            <!-- Generated Keys Result List -->
+            <div id="generated-keys-wrapper" class="hidden" style="margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-weight: 600; font-size: 0.84rem; color: var(--color-emerald);"><i class="fa-solid fa-circle-check"></i> Generated Keys:</span>
+                    <button id="copy-all-btn" type="button" class="btn btn-secondary btn-sm"><i class="fa-solid fa-copy"></i> Copy All</button>
+                </div>
+                <ul id="generated-keys-list" style="list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto;"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- License Details Modal / Drawer -->
+    <div id="license-detail-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 540px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-id-card text-cyan"></i> License Details</h3>
+                <button id="btn-close-detail-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="license-detail-body">
+                <!-- Key Banner -->
+                <div class="detail-key-banner">
+                    <div style="flex: 1; overflow: hidden;">
+                        <span class="detail-label">License Key</span>
+                        <div class="detail-key-val" id="detail-key-display">---</div>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-copy-detail-key"><i class="fa-regular fa-copy"></i> Copy</button>
+                    <span id="detail-status-badge" class="badge">---</span>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="detail-info-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Bound User</span>
+                        <span class="detail-val" id="detail-user">---</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Remaining Time</span>
+                        <span class="detail-val text-emerald font-bold" id="detail-remaining">---</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Duration</span>
+                        <span class="detail-val" id="detail-duration">---</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Expires At</span>
+                        <span class="detail-val" id="detail-expires">---</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Created Date</span>
+                        <span class="detail-val" id="detail-created">---</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Admin Note</span>
+                        <span class="detail-val" id="detail-note">---</span>
+                    </div>
+                    <div class="detail-item full-width">
+                        <span class="detail-label">Hardware Signature (HWID)</span>
+                        <span class="detail-val font-mono" id="detail-hwid" style="font-size: 0.8rem;">---</span>
+                    </div>
+                </div>
+
+                <!-- Recent Activity / Sessions -->
+                <div style="margin-top: 14px;">
+                    <span class="detail-label" style="display: block; margin-bottom: 6px;">Recent Sessions / Logins</span>
+                    <div id="detail-sessions-container" class="detail-sessions-box">
+                        <div class="text-muted" style="font-size: 0.8rem;">No recent sessions found</div>
+                    </div>
+                </div>
+
+                <!-- Contextual Action Buttons -->
+                <div class="detail-actions-footer" id="detail-actions-container">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Extend License Modal -->
+    <div id="extend-license-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-clock-rotate-left text-cyan"></i> Extend License Time</h3>
+                <button id="btn-close-extend-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="extend-form">
+                <input type="hidden" id="extend-target-key" value="">
+                <input type="hidden" id="extend-is-bulk" value="false">
+                
+                <p id="extend-modal-desc" style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 14px;">
+                    Select additional duration to append to this license.
+                </p>
+
+                <div class="input-group">
+                    <label class="input-label" for="extend-preset-select">Extension Preset</label>
+                    <select id="extend-preset-select" required>
+                        <option value="1">+1 Day</option>
+                        <option value="3">+3 Days</option>
+                        <option value="7" selected>+7 Days</option>
+                        <option value="15">+15 Days</option>
+                        <option value="30">+30 Days</option>
+                        <option value="90">+90 Days</option>
+                        <option value="custom">-- Custom Duration --</option>
+                    </select>
+                </div>
+
+                <!-- Custom Extend Row -->
+                <div id="custom-extend-wrapper" class="hidden" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 14px;">
+                    <div style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label class="input-label" style="font-size: 0.72rem;">Days</label>
+                            <input type="number" id="extend-custom-days" min="0" value="0" placeholder="0">
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="input-label" style="font-size: 0.72rem;">Hours</label>
+                            <input type="number" id="extend-custom-hours" min="0" max="23" value="0" placeholder="0">
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="input-label" style="font-size: 0.72rem;">Minutes</label>
+                            <input type="number" id="extend-custom-minutes" min="0" max="59" value="0" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-plus"></i> Grant Extension
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generic Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 id="confirm-modal-title" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation text-amber" id="confirm-modal-icon"></i> Confirmation Required
+                </h3>
+                <button id="btn-close-confirm-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="padding: 12px 0;">
+                <p id="confirm-modal-message" style="color: var(--text-primary); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                    Are you sure you want to proceed?
+                </p>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 14px;">
+                <button id="btn-cancel-confirm" class="btn btn-secondary">Cancel</button>
+                <button id="btn-action-confirm" class="btn btn-red">Confirm Action</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Create App Modal -->
     <div id="create-app-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Create New Application</h3>
+                <h3><i class="fa-solid fa-cube text-cyan"></i> Create Application</h3>
                 <button id="btn-close-app-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="create-app-form">
-                <div class="input-group" style="margin-bottom: 20px;">
-                    <label style="display:block; margin-bottom:8px; font-size:0.85rem; font-weight:600; color:var(--text-muted);">Application Name</label>
-                    <input type="text" id="new-app-name" placeholder="e.g. Bypasses, SpamBot" required autocomplete="off">
+                <div class="input-group">
+                    <label class="input-label" for="new-app-name">Application Name</label>
+                    <input type="text" id="new-app-name" placeholder="e.g. ApexLoader, BypassTool" required autocomplete="off">
                 </div>
-                <button type="submit" class="btn btn-blue btn-block">Create App</button>
+                <button type="submit" class="btn btn-primary btn-block">Create Application</button>
             </form>
         </div>
     </div>
@@ -968,20 +1287,20 @@
     <div id="create-user-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Create User</h3>
+                <h3><i class="fa-solid fa-user-plus text-cyan"></i> Create User Account</h3>
                 <button id="btn-close-user-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="create-user-form">
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Username</label>
+                <div class="input-group">
+                    <label class="input-label" for="new-username">Username</label>
                     <input type="text" id="new-username" required autocomplete="off">
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Password</label>
+                <div class="input-group">
+                    <label class="input-label" for="new-password">Password</label>
                     <input type="password" id="new-password" required>
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Duration</label>
+                <div class="input-group">
+                    <label class="input-label" for="user-duration">Access Duration</label>
                     <select id="user-duration" required>
                         <option value="1">1 Day</option>
                         <option value="7">7 Days</option>
@@ -989,57 +1308,14 @@
                         <option value="0">Lifetime</option>
                     </select>
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Subscription Level</label>
+                <div class="input-group">
+                    <label class="input-label" for="user-subscription-id">Subscription Tier</label>
                     <select id="user-subscription-id">
-                        <option value="">Default (No Subscription Update)</option>
+                        <option value="">Default (No Specific Tier)</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-blue btn-block">Create User</button>
+                <button type="submit" class="btn btn-primary btn-block">Create User</button>
             </form>
-        </div>
-    </div>
-
-    <!-- Generate Keys Modal -->
-    <div id="generate-keys-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Generate License Keys</h3>
-                <button id="btn-close-generate-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form id="generate-form">
-                <div style="display:flex; gap:16px; margin-bottom: 15px;">
-                    <div style="flex:1;">
-                        <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Duration</label>
-                        <select id="duration" required>
-                            <option value="1">1 Day</option>
-                            <option value="7">7 Days</option>
-                            <option value="30" selected>30 Days</option>
-                            <option value="0">Lifetime</option>
-                        </select>
-                    </div>
-                    <div style="flex:1;">
-                        <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Key Count</label>
-                        <input type="number" id="count" value="1" min="1" max="100" required>
-                    </div>
-                </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Subscription Level</label>
-                    <select id="license-subscription-id">
-                        <option value="">Default (No Subscription Update)</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-blue btn-block">Generate Keys</button>
-            </form>
-
-            <!-- Generated Keys Result Wrapper -->
-            <div id="generated-keys-wrapper" class="hidden" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <span style="font-weight:600; font-size:0.85rem; color:var(--color-emerald);"><i class="fa-solid fa-circle-check"></i> Generated Keys:</span>
-                    <button id="copy-all-btn" type="button" class="btn btn-secondary btn-sm"><i class="fa-solid fa-copy"></i> Copy All</button>
-                </div>
-                <ul id="generated-keys-list" style="list-style:none; padding:0; margin:0; max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></ul>
-            </div>
         </div>
     </div>
 
@@ -1047,19 +1323,19 @@
     <div id="create-variable-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Create Variable</h3>
+                <h3><i class="fa-solid fa-sliders text-cyan"></i> Add Server Variable</h3>
                 <button id="btn-close-variable-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="create-variable-form">
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Variable Name</label>
-                    <input type="text" id="new-variable-name" required autocomplete="off">
+                <div class="input-group">
+                    <label class="input-label" for="new-variable-name">Variable Name</label>
+                    <input type="text" id="new-variable-name" placeholder="e.g. server_status, game_version" required autocomplete="off">
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Value</label>
-                    <input type="text" id="new-variable-value" required autocomplete="off">
+                <div class="input-group">
+                    <label class="input-label" for="new-variable-value">Value</label>
+                    <input type="text" id="new-variable-value" placeholder="Secure value" required autocomplete="off">
                 </div>
-                <button type="submit" class="btn btn-blue btn-block">Save Variable</button>
+                <button type="submit" class="btn btn-primary btn-block">Save Variable</button>
             </form>
         </div>
     </div>
@@ -1068,19 +1344,19 @@
     <div id="create-webhook-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Create Webhook</h3>
+                <h3><i class="fa-solid fa-link text-cyan"></i> Add Webhook</h3>
                 <button id="btn-close-webhook-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="create-webhook-form">
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Webhook Name</label>
-                    <input type="text" id="new-webhook-name" required autocomplete="off">
+                <div class="input-group">
+                    <label class="input-label" for="new-webhook-name">Webhook Identifier</label>
+                    <input type="text" id="new-webhook-name" placeholder="e.g. discord_notify" required autocomplete="off">
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">URL</label>
+                <div class="input-group">
+                    <label class="input-label" for="new-webhook-url">Target URL</label>
                     <input type="url" id="new-webhook-url" placeholder="https://..." required autocomplete="off">
                 </div>
-                <button type="submit" class="btn btn-blue btn-block">Save Webhook</button>
+                <button type="submit" class="btn btn-primary btn-block">Save Webhook</button>
             </form>
         </div>
     </div>
@@ -1089,51 +1365,48 @@
     <div id="create-subscription-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Create Subscription</h3>
+                <h3><i class="fa-solid fa-box-open text-cyan"></i> Create Subscription Tier</h3>
                 <button id="btn-close-subscription-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="create-subscription-form">
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Subscription Name</label>
-                    <input type="text" id="new-subscription-name" placeholder="e.g. VIP, Premium, Base" required autocomplete="off">
+                <div class="input-group">
+                    <label class="input-label" for="new-sub-name">Tier Name</label>
+                    <input type="text" id="new-sub-name" placeholder="e.g. Premium VIP" required autocomplete="off">
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Subscription Level</label>
-                    <input type="number" id="new-subscription-level" placeholder="1" min="1" required autocomplete="off">
+                <div class="input-group">
+                    <label class="input-label" for="new-sub-level">Level Number (Integer)</label>
+                    <input type="number" id="new-sub-level" value="1" min="1" max="100" required>
                 </div>
-                <button type="submit" class="btn btn-blue btn-block">Save Subscription</button>
+                <button type="submit" class="btn btn-primary btn-block">Save Subscription</button>
             </form>
         </div>
     </div>
 
-    <!-- Generate Token Modal -->
-    <div id="generate-token-modal" class="modal-overlay hidden">
+    <!-- Generate Tokens Modal -->
+    <div id="generate-tokens-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Generate Tokens</h3>
-                <button id="btn-close-token-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+                <h3><i class="fa-solid fa-ticket text-cyan"></i> Generate Tokens</h3>
+                <button id="btn-close-tokens-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form id="generate-token-form">
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Duration (Days)</label>
-                    <input type="number" id="token-duration" placeholder="30" min="1" required>
+            <form id="generate-tokens-form">
+                <div style="display: flex; gap: 12px; margin-bottom: 14px;">
+                    <div style="flex: 1;">
+                        <label class="input-label" for="token-count">Quantity</label>
+                        <input type="number" id="token-count" value="1" min="1" max="100" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="input-label" for="token-duration">Duration (Days)</label>
+                        <input type="number" id="token-duration" value="30" min="0" required>
+                    </div>
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Subscription (Optional)</label>
+                <div class="input-group">
+                    <label class="input-label" for="token-subscription-id">Subscription Tier (Optional)</label>
                     <select id="token-subscription-id">
-                        <option value="">No Subscription Update</option>
+                        <option value="">Default Tier</option>
                     </select>
-                    <small style="color:var(--text-muted);">If selected, redeeming updates the user's subscription level.</small>
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Number of Tokens</label>
-                    <input type="number" id="token-count" placeholder="1" value="1" min="1" max="100" required>
-                </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Note (Optional)</label>
-                    <input type="text" id="token-note" placeholder="For reseller X..." autocomplete="off">
-                </div>
-                <button type="submit" class="btn btn-blue btn-block">Generate</button>
+                <button type="submit" class="btn btn-primary btn-block">Generate Tokens</button>
             </form>
         </div>
     </div>
@@ -1142,15 +1415,15 @@
     <div id="upload-file-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Upload File</h3>
+                <h3><i class="fa-solid fa-cloud-arrow-up text-cyan"></i> Upload Binary Asset</h3>
                 <button id="btn-close-file-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="upload-file-form">
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Select File</label>
-                    <input type="file" id="file-input" required>
+                <div class="input-group">
+                    <label class="input-label">Select File</label>
+                    <input type="file" id="file-upload-input" required>
                 </div>
-                <button type="submit" class="btn btn-blue btn-block">Upload</button>
+                <button type="submit" class="btn btn-primary btn-block">Upload to Storage</button>
             </form>
         </div>
     </div>
@@ -1159,26 +1432,27 @@
     <div id="add-resource-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Add Resource</h3>
+                <h3><i class="fa-solid fa-book text-cyan"></i> Add Documentation Resource</h3>
                 <button id="btn-close-resource-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="add-resource-form">
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Title</label>
-                    <input type="text" id="resource-title" placeholder="e.g. Injection Guide" required autocomplete="off">
+                <div class="input-group">
+                    <label class="input-label" for="resource-title">Resource Title</label>
+                    <input type="text" id="resource-title" required autocomplete="off">
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-muted);">Content (Markdown/Text)</label>
-                    <textarea id="resource-content" rows="6" placeholder="Write your guide here..." required style="width:100%; border:1px solid var(--border-color); background:rgba(255,255,255,0.02); color:var(--text-color); border-radius:6px; padding:10px;"></textarea>
+                <div class="input-group">
+                    <label class="input-label" for="resource-content">Documentation / Guide Content</label>
+                    <textarea id="resource-content" rows="6" required style="resize: vertical;"></textarea>
                 </div>
-                <button type="submit" class="btn btn-blue btn-block">Save Resource</button>
+                <button type="submit" class="btn btn-primary btn-block">Publish Resource</button>
             </form>
         </div>
     </div>
 
-    <!-- Notification system toast -->
-    <div id="toast" class="toast hidden"></div>
+    <!-- Global Toast Notification Container -->
+    <div id="toast-container"></div>
 
+    <!-- JavaScript Application Logic -->
     <script src="/static/app.js"></script>
 </body>
 </html>

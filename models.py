@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 class AdminLogin(BaseModel):
     username: str
@@ -15,10 +15,26 @@ class AppCreate(BaseModel):
 
 class LicenseGenerate(BaseModel):
     app_id: str = Field(...)
-    duration_days: int = Field(..., ge=0, description="0 for lifetime, otherwise number of days")
+    duration_days: Optional[float] = Field(default=0, ge=0, description="0 for lifetime, otherwise days (can be fractional)")
+    duration_hours: Optional[float] = Field(default=0, ge=0, description="Custom hours")
+    duration_minutes: Optional[float] = Field(default=0, ge=0, description="Custom minutes")
     count: int = Field(default=1, ge=1, le=100, description="Number of keys to generate")
+    custom_prefix: Optional[str] = Field(default=None, description="Optional custom prefix for keys")
     subscription_id: Optional[str] = None
     note: Optional[str] = None
+
+class LicenseExtend(BaseModel):
+    days: Optional[float] = Field(default=0, ge=0)
+    hours: Optional[float] = Field(default=0, ge=0)
+    minutes: Optional[float] = Field(default=0, ge=0)
+
+class BulkLicenseAction(BaseModel):
+    app_id: str = Field(...)
+    action: str = Field(..., description="delete, ban, unban, pause, unpause, revoke, reset_hwid, extend")
+    keys: List[str] = Field(..., min_items=1)
+    extend_days: Optional[float] = Field(default=0, ge=0)
+    extend_hours: Optional[float] = Field(default=0, ge=0)
+    extend_minutes: Optional[float] = Field(default=0, ge=0)
 
 class SellerKeyGenerate(BaseModel):
     app_id: str = Field(...)

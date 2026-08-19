@@ -139,20 +139,145 @@ function renderNotifications() {
     `).join('');
 }
 
-// Toast helper
+// Modern Toast Notification System
 function showToast(message, isError = false) {
     const cleanMsg = getErrorMessage(message, 'An error occurred');
-    if (toast) {
-        toast.textContent = cleanMsg;
-        toast.className = `toast-notification ${isError ? 'error' : ''}`;
-        toast.classList.remove('hidden');
+    const container = document.getElementById('toast-container');
+    if (container) {
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast ${isError ? 'error' : 'success'}`;
+        toastEl.innerHTML = `
+            <i class="fa-solid ${isError ? 'fa-triangle-exclamation text-rose' : 'fa-circle-check text-emerald'}"></i>
+            <span style="flex:1;">${cleanMsg}</span>
+        `;
+        container.appendChild(toastEl);
         setTimeout(() => {
-            if (toast) toast.classList.add('hidden');
+            toastEl.style.opacity = '0';
+            toastEl.style.transform = 'translateY(10px)';
+            toastEl.style.transition = 'all 0.25s ease';
+            setTimeout(() => toastEl.remove(), 250);
         }, 3200);
     }
     addSystemNotification(cleanMsg, isError);
 }
 window.showToast = showToast;
+
+// Telemetry & Activations Analytics Canvas Chart
+function renderAnalyticsChart() {
+    const canvas = document.getElementById('analytics-chart-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    
+    const width = rect.width;
+    const height = rect.height;
+    ctx.clearRect(0, 0, width, height);
+    
+    const days = 7;
+    const labels = [];
+    const points = [];
+    
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        labels.push(d.toLocaleDateString([], { weekday: 'short' }));
+        const dayStr = d.toISOString().split('T')[0];
+        let count = 0;
+        if (licensesList && licensesList.length) {
+            licensesList.forEach(l => {
+                if (l.created_at && l.created_at.startsWith(dayStr)) count++;
+            });
+        }
+        points.push(count);
+    }
+    
+    const maxVal = Math.max(5, ...points);
+    const paddingBottom = 30;
+    const paddingTop = 20;
+    const paddingLeft = 30;
+    const paddingRight = 20;
+    const chartW = width - paddingLeft - paddingRight;
+    const chartH = height - paddingTop - paddingBottom;
+    
+    // Grid Lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const y = paddingTop + (chartH / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(paddingLeft, y);
+        ctx.lineTo(width - paddingRight, y);
+        ctx.stroke();
+    }
+    
+    const coords = points.map((val, idx) => {
+        const x = paddingLeft + (chartW / (points.length - 1)) * idx;
+        const y = paddingTop + chartH - (val / maxVal) * chartH;
+        return { x, y, val };
+    });
+    
+    // Gradient Area
+    ctx.beginPath();
+    ctx.moveTo(coords[0].x, coords[0].y);
+    for (let i = 1; i < coords.length; i++) {
+        const prev = coords[i - 1];
+        const curr = coords[i];
+        const cpX = (prev.x + curr.x) / 2;
+        ctx.bezierCurveTo(cpX, prev.y, cpX, curr.y, curr.x, curr.y);
+    }
+    ctx.lineTo(coords[coords.length - 1].x, paddingTop + chartH);
+    ctx.lineTo(coords[0].x, paddingTop + chartH);
+    ctx.closePath();
+    
+    const grad = ctx.createLinearGradient(0, paddingTop, 0, paddingTop + chartH);
+    grad.addColorStop(0, 'rgba(56, 189, 248, 0.28)');
+    grad.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    
+    // Smooth Line
+    ctx.beginPath();
+    ctx.moveTo(coords[0].x, coords[0].y);
+    for (let i = 1; i < coords.length; i++) {
+        const prev = coords[i - 1];
+        const curr = coords[i];
+        const cpX = (prev.x + curr.x) / 2;
+        ctx.bezierCurveTo(cpX, prev.y, cpX, curr.y, curr.x, curr.y);
+    }
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    
+    // Points & Labels
+    coords.forEach((pt, idx) => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#08090D';
+        ctx.stroke();
+        
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(labels[idx], pt.x, height - 10);
+    });
+}
+window.renderAnalyticsChart = renderAnalyticsChart;
+window.addEventListener('resize', () => {
+    if (document.getElementById('tab-overview')?.classList.contains('active-content')) {
+        renderAnalyticsChart();
+    }
+});
 
 // Initial Authentication Check
 async function checkAuth() {
@@ -209,10 +334,24 @@ function switchTab(tabId) {
         }
     });
 
-    if (tabId === 'settings') {
+    if (tabId === 'overview') {
+        fetchStats();
+        setTimeout(renderAnalyticsChart, 50);
+    } else if (tabId === 'settings') {
         fetch2FAStatus();
     }
 }
+
+// Global Escape Key Listener for Modals & Mobile Drawer
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay:not(#login-view)').forEach(modal => {
+            modal.classList.add('hidden');
+        });
+        toggleMobileSidebar(false);
+    }
+});
+
 
 
 // Fetch all applications
@@ -348,15 +487,44 @@ window.deleteAppWithConfirm = async function(id, name) {
     }
 };
 
-// Stats helper
-function updateStats() {
-    const totalCount = licensesList.length;
-    const usedCount = licensesList.filter(l => l.is_used && !l.is_banned).length;
-    const bannedCount = licensesList.filter(l => l.is_banned).length;
-    const usersCount = usersList.length;
+// License Table State
+let selectedLicenseKeys = new Set();
+let licenseCurrentPage = 1;
+let licensePerPage = 25;
+let expiringLicensesList = [];
 
-    if(statActiveSessions) {
-        statActiveSessions.textContent = usedCount + usersCount;
+// Stats Helper - Fetches live aggregated dashboard metrics
+async function fetchStats() {
+    if (!activeAppId) return;
+    try {
+        const response = await fetch(`/api/admin/stats?app_id=${activeAppId}`);
+        if (response.ok) {
+            const data = await response.json();
+            const s = data.stats || {};
+            
+            const totalLicEl = document.getElementById('stat-total-licenses');
+            const activeLicEl = document.getElementById('stat-active-licenses');
+            const unusedLicEl = document.getElementById('stat-unused-licenses');
+            const expiredLicEl = document.getElementById('stat-expired-licenses');
+            const bannedLicEl = document.getElementById('stat-banned-licenses');
+            const pausedLicEl = document.getElementById('stat-paused-licenses');
+            const sessionsEl = document.getElementById('stat-active-sessions');
+            const todayActEl = document.getElementById('stat-today-activations');
+            const expiringEl = document.getElementById('stat-expiring-soon');
+            
+            if (totalLicEl) totalLicEl.textContent = s.total_licenses || 0;
+            if (activeLicEl) activeLicEl.textContent = s.active_licenses || 0;
+            if (unusedLicEl) unusedLicEl.textContent = s.unused_licenses || 0;
+            if (expiredLicEl) expiredLicEl.textContent = s.expired_licenses || 0;
+            if (bannedLicEl) bannedLicEl.textContent = s.banned_licenses || 0;
+            if (pausedLicEl) pausedLicEl.textContent = s.paused_licenses || 0;
+            if (sessionsEl) sessionsEl.textContent = s.active_sessions || 0;
+            if (todayActEl) todayActEl.textContent = s.today_activations || 0;
+            if (expiringEl) expiringEl.textContent = s.expiring_soon || 0;
+            renderAnalyticsChart();
+        }
+    } catch(e) {
+        console.error('Failed to fetch stats:', e);
     }
 }
 
@@ -374,6 +542,12 @@ function updateActiveAppDisplay() {
     document.querySelectorAll('.active-app-id-text').forEach(el => el.textContent = activeApp.id);
     document.querySelectorAll('.api-domain-text').forEach(el => el.textContent = window.location.origin);
     window.rawClientSecret = activeApp.secret;
+    
+    // Update prefix in generate modal from app rules
+    const genPrefixInput = document.getElementById('gen-custom-prefix');
+    if (genPrefixInput && (!genPrefixInput.value || genPrefixInput.value === 'AXC' || genPrefixInput.value === 'AnikXCheats')) {
+        genPrefixInput.value = (activeApp.rules && activeApp.rules.key_prefix) ? activeApp.rules.key_prefix : 'AXC';
+    }
     
     // Mask the secret by default
     if (settingsAppSecret) {
@@ -393,6 +567,9 @@ function updateActiveAppDisplay() {
         }
     };
     
+    // Refresh stats
+    fetchStats();
+    
     // Refresh current tab data
     const activeNav = document.querySelector('.nav-item.active');
     const activeTab = activeNav ? activeNav.getAttribute('data-tab') : 'overview';
@@ -401,6 +578,8 @@ function updateActiveAppDisplay() {
         fetchUsers();
     } else if (activeTab === 'licenses') {
         fetchLicenses();
+    } else if (activeTab === 'expiring-soon') {
+        fetchExpiringSoon();
     } else if (activeTab === 'users') {
         fetchUsers();
     } else if (activeTab === 'logs') {
@@ -440,6 +619,7 @@ async function fetchLicenses() {
         if (response.ok) {
             licensesList = await response.json();
             renderLicensesTable();
+            fetchStats();
         } else if (response.status === 401) {
             showToast('Session expired! Please login again.', true);
             showLogin();
@@ -451,83 +631,227 @@ async function fetchLicenses() {
     }
 }
 
-// Render Licenses in UI
+// Helper to format remaining time string
+function formatRemainingTime(expiresAt, status) {
+    if (status === 'BANNED') return '<span class="badge badge-banned">Banned</span>';
+    if (status === 'REVOKED') return '<span class="badge badge-revoked">Revoked</span>';
+    if (status === 'PAUSED') return '<span class="badge badge-paused">Paused</span>';
+    if (!expiresAt) return '<span class="text-cyan">Unused</span>';
+    if (expiresAt === 'Lifetime') return '<span class="text-emerald font-bold">Lifetime</span>';
+    
+    try {
+        const exp = new Date(expiresAt).getTime();
+        const now = Date.now();
+        const diffMs = exp - now;
+        
+        if (diffMs <= 0) return '<span class="text-red">Expired</span>';
+        
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        
+        if (days > 0) {
+            return `<span class="text-emerald font-bold">${days}d ${hours.toString().padStart(2, '0')}h</span>`;
+        } else if (hours > 0) {
+            return `<span class="text-orange font-bold">${hours}h ${minutes.toString().padStart(2, '0')}m</span>`;
+        } else {
+            return `<span class="text-red font-bold">${minutes}m</span>`;
+        }
+    } catch(e) {
+        return 'N/A';
+    }
+}
+
+// Render Licenses in UI with Filter, Search, Bulk selection & Pagination
 function renderLicensesTable() {
     if (!licenseTableBody) return;
     licenseTableBody.innerHTML = '';
     
     const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const statusFilter = filterStatus ? filterStatus.value : 'all';
+    const statusFilter = filterStatus ? filterStatus.value.toLowerCase() : 'all';
     
     const filtered = licensesList.filter(lic => {
-        const matchesSearch = lic.key.toLowerCase().includes(query) || 
-                              (lic.used_by && lic.used_by.toLowerCase().includes(query));
+        const status = (lic.status || 'UNUSED').toLowerCase();
         
+        // Search filter
+        const matchesSearch = !query || 
+            (lic.key && lic.key.toLowerCase().includes(query)) ||
+            (lic.used_by && lic.used_by.toLowerCase().includes(query)) ||
+            (lic.hwid && lic.hwid.toLowerCase().includes(query)) ||
+            (lic.note && lic.note.toLowerCase().includes(query));
+            
+        // Status filter
         let matchesStatus = true;
-        if (statusFilter === 'unused') {
-            matchesStatus = !lic.is_used && !lic.is_banned;
-        } else if (statusFilter === 'used') {
-            matchesStatus = lic.is_used && !lic.is_banned;
-        } else if (statusFilter === 'banned') {
-            matchesStatus = lic.is_banned;
+        if (statusFilter !== 'all') {
+            if (statusFilter === 'used') {
+                matchesStatus = lic.is_used === true;
+            } else {
+                matchesStatus = status === statusFilter;
+            }
         }
         
         return matchesSearch && matchesStatus;
     });
     
-    updateStats();
+    // Pagination calculation
+    const totalCount = filtered.length;
+    const perPageSelect = document.getElementById('licenses-per-page');
+    if (perPageSelect) licensePerPage = parseInt(perPageSelect.value) || 25;
+    
+    const totalPages = Math.max(1, Math.ceil(totalCount / licensePerPage));
+    if (licenseCurrentPage > totalPages) licenseCurrentPage = totalPages;
+    if (licenseCurrentPage < 1) licenseCurrentPage = 1;
+    
+    const startIndex = (licenseCurrentPage - 1) * licensePerPage;
+    const paginatedItems = filtered.slice(startIndex, startIndex + licensePerPage);
+    
+    // Update pagination controls
+    const pagInfoEl = document.getElementById('licenses-pagination-info');
+    const pagBtnsEl = document.getElementById('licenses-pagination-buttons');
+    if (pagInfoEl) {
+        pagInfoEl.textContent = totalCount === 0 
+            ? 'Showing 0 to 0 of 0 licenses' 
+            : `Showing ${startIndex + 1} to ${Math.min(startIndex + licensePerPage, totalCount)} of ${totalCount} licenses`;
+    }
+    
+    if (pagBtnsEl) {
+        pagBtnsEl.innerHTML = `
+            <button class="btn-page" onclick="changeLicensePage(${licenseCurrentPage - 1})" ${licenseCurrentPage <= 1 ? 'disabled' : ''}>
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span style="font-size:0.8rem; padding: 4px 8px; color:var(--text-main); font-weight:600;">Page ${licenseCurrentPage} / ${totalPages}</span>
+            <button class="btn-page" onclick="changeLicensePage(${licenseCurrentPage + 1})" ${licenseCurrentPage >= totalPages ? 'disabled' : ''}>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        `;
+    }
+    
+    updateBulkActionBar();
+    
+    const mobileContainer = document.getElementById('mobile-licenses-list');
+    if (mobileContainer) mobileContainer.innerHTML = '';
     
     if (filtered.length === 0) {
         if (noLicensesMsg) noLicensesMsg.classList.remove('hidden');
     } else {
         if (noLicensesMsg) noLicensesMsg.classList.add('hidden');
         
-        filtered.forEach(lic => {
+        paginatedItems.forEach(lic => {
             const tr = document.createElement('tr');
+            const isSelected = selectedLicenseKeys.has(lic.key);
+            const status = lic.status || 'UNUSED';
             
-            let expiryText = 'N/A';
+            let expiryText = '—';
             if (lic.expires_at) {
                 if (lic.expires_at === 'Lifetime') {
-                    expiryText = '<span class="text-emerald">Lifetime</span>';
+                    expiryText = '<span class="text-emerald font-semibold">Lifetime</span>';
                 } else {
                     const date = new Date(lic.expires_at);
                     expiryText = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 }
             }
             
-            let statusBadge = '';
-            if (lic.is_banned) {
-                statusBadge = '<span class="badge badge-banned">Banned</span>';
-            } else if (lic.is_used) {
-                statusBadge = '<span class="badge badge-used">Active</span>';
-            } else {
-                statusBadge = '<span class="badge badge-unused">Unused</span>';
+            let statusBadge = `<span class="badge badge-${status.toLowerCase()}">${status}</span>`;
+            const remainingDisplay = formatRemainingTime(lic.expires_at, status);
+            
+            // Format duration string
+            let durationText = 'Lifetime';
+            if (lic.duration_days && lic.duration_days > 0) {
+                if (lic.duration_days >= 1) {
+                    durationText = `${Number.isInteger(lic.duration_days) ? lic.duration_days : lic.duration_days.toFixed(1)} Days`;
+                } else {
+                    const hours = Math.round(lic.duration_days * 24);
+                    durationText = `${hours} Hours`;
+                }
             }
             
-            const banAction = lic.is_banned 
-                ? `<button onclick="unbanLicense('${lic.key}')" class="btn-action reset-btn" title="Unban"><i class="fa-solid fa-unlock"></i></button>`
-                : `<button onclick="banLicense('${lic.key}')" class="btn-action ban-btn" title="Ban"><i class="fa-solid fa-ban"></i></button>`;
+            // Actions
+            const pauseBtn = lic.is_paused 
+                ? `<button onclick="togglePauseLicense('${lic.key}', true)" class="btn-action reset-btn" title="Unpause License"><i class="fa-solid fa-play"></i></button>`
+                : `<button onclick="togglePauseLicense('${lic.key}', false)" class="btn-action" title="Pause License"><i class="fa-solid fa-pause"></i></button>`;
                 
-            const resetHwidAction = lic.hwid 
+            const banBtn = lic.is_banned
+                ? `<button onclick="toggleBanLicense('${lic.key}', true)" class="btn-action reset-btn" title="Unban License"><i class="fa-solid fa-unlock"></i></button>`
+                : `<button onclick="toggleBanLicense('${lic.key}', false)" class="btn-action ban-btn" title="Ban License"><i class="fa-solid fa-ban"></i></button>`;
+                
+            const resetHwidBtn = lic.hwid 
                 ? `<button onclick="resetHwid('${lic.key}')" class="btn-action" title="Reset HWID"><i class="fa-solid fa-arrows-rotate"></i></button>`
                 : '';
+                
+            const extendBtn = `<button onclick="showExtendModal('${lic.key}')" class="btn-action reset-btn" title="Extend Duration"><i class="fa-solid fa-clock-rotate-left"></i></button>`;
+            const detailBtn = `<button onclick="showLicenseDetails('${lic.key}')" class="btn-action" title="View Full Details"><i class="fa-solid fa-eye"></i></button>`;
+            const deleteBtn = `<button onclick="deleteLicense('${lic.key}')" class="btn-action ban-btn" title="Delete License"><i class="fa-solid fa-trash-can"></i></button>`;
             
             tr.innerHTML = `
-                <td class="license-key-cell">${lic.key}</td>
-                <td>${lic.used_by || '<span class="text-muted">—</span>'}</td>
-                <td>${lic.duration_days === 0 ? 'Lifetime' : lic.duration_days + ' Days'}</td>
-                <td style="font-family: var(--font-mono); font-size: 0.8rem;">${lic.hwid || '<span class="text-muted">—</span>'}</td>
-                <td>${expiryText}</td>
+                <td style="text-align:center;">
+                    <input type="checkbox" class="license-checkbox" data-key="${lic.key}" ${isSelected ? 'checked' : ''} onchange="toggleLicenseSelect('${lic.key}', this.checked)">
+                </td>
+                <td class="license-key-cell">
+                    <span style="cursor:pointer;" onclick="showLicenseDetails('${lic.key}')" title="Click to view details">${lic.key}</span>
+                    <i class="fa-regular fa-copy" style="margin-left:6px; cursor:pointer; font-size:0.75rem; color:var(--text-muted);" onclick="navigator.clipboard.writeText('${lic.key}'); showToast('Copied key!');" title="Copy key"></i>
+                </td>
                 <td>${statusBadge}</td>
+                <td>${durationText}</td>
+                <td>${lic.used_by || '<span class="text-muted">—</span>'}</td>
+                <td style="font-family: var(--font-mono); font-size: 0.78rem;" title="${lic.hwid || ''}">${lic.hwid ? lic.hwid.substring(0, 12) + '...' : '<span class="text-muted">—</span>'}</td>
+                <td>${expiryText}</td>
+                <td>${remainingDisplay}</td>
                 <td>
                     <div class="action-buttons">
-                        ${banAction}
-                        ${resetHwidAction}
-                        <button onclick="deleteLicense('${lic.key}')" class="btn-action ban-btn" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                        ${detailBtn}
+                        ${extendBtn}
+                        ${resetHwidBtn}
+                        ${pauseBtn}
+                        ${banBtn}
+                        ${deleteBtn}
                     </div>
                 </td>
             `;
             licenseTableBody.appendChild(tr);
+
+            // Populate Mobile Card
+            if (mobileContainer) {
+                const card = document.createElement('div');
+                card.className = 'mobile-card-item';
+                card.innerHTML = `
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">
+                            <input type="checkbox" class="license-checkbox" data-key="${lic.key}" ${isSelected ? 'checked' : ''} onchange="toggleLicenseSelect('${lic.key}', this.checked)">
+                            <span onclick="showLicenseDetails('${lic.key}')">${lic.key}</span>
+                            <i class="fa-regular fa-copy cursor-pointer text-muted" onclick="navigator.clipboard.writeText('${lic.key}'); showToast('Copied key!');"></i>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div class="mobile-card-grid">
+                        <div class="mobile-card-field">
+                            <span class="mobile-card-label">User</span>
+                            <span class="mobile-card-val">${lic.used_by || '—'}</span>
+                        </div>
+                        <div class="mobile-card-field">
+                            <span class="mobile-card-label">Remaining</span>
+                            <span class="mobile-card-val">${remainingDisplay}</span>
+                        </div>
+                        <div class="mobile-card-field">
+                            <span class="mobile-card-label">Duration</span>
+                            <span class="mobile-card-val">${durationText}</span>
+                        </div>
+                        <div class="mobile-card-field">
+                            <span class="mobile-card-label">Expires</span>
+                            <span class="mobile-card-val" style="font-size:0.75rem;">${lic.expires_at ? (lic.expires_at === 'Lifetime' ? 'Lifetime' : new Date(lic.expires_at).toLocaleDateString()) : '—'}</span>
+                        </div>
+                    </div>
+                    <div class="mobile-card-actions">
+                        ${detailBtn}
+                        ${extendBtn}
+                        ${resetHwidBtn}
+                        ${pauseBtn}
+                        ${banBtn}
+                        ${deleteBtn}
+                    </div>
+                `;
+                mobileContainer.appendChild(card);
+            }
         });
     }
 }
@@ -561,6 +885,9 @@ function renderUsersTable() {
                user.license_key.toLowerCase().includes(query);
     });
     
+    const mobileUsersContainer = document.getElementById('mobile-users-list');
+    if (mobileUsersContainer) mobileUsersContainer.innerHTML = '';
+    
     if (filtered.length === 0) {
         if (noUsersMsg) noUsersMsg.classList.remove('hidden');
     } else {
@@ -583,6 +910,38 @@ function renderUsersTable() {
                 </td>
             `;
             userTableBody.appendChild(tr);
+
+            if (mobileUsersContainer) {
+                const card = document.createElement('div');
+                card.className = 'mobile-card-item';
+                card.innerHTML = `
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">
+                            <span>${user.username}</span>
+                        </div>
+                        <span class="badge badge-used">Registered</span>
+                    </div>
+                    <div class="mobile-card-grid">
+                        <div class="mobile-card-field">
+                            <span class="mobile-card-label">License Key</span>
+                            <span class="mobile-card-val font-mono" style="color:var(--accent); font-size:0.8rem;">${user.license_key}</span>
+                        </div>
+                        <div class="mobile-card-field">
+                            <span class="mobile-card-label">Registered Date</span>
+                            <span class="mobile-card-val" style="font-size:0.75rem;">${new Date(user.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div class="mobile-card-field" style="grid-column: 1 / -1;">
+                            <span class="mobile-card-label">Hardware Signature (HWID)</span>
+                            <span class="mobile-card-val font-mono" style="font-size:0.75rem;">${user.hwid || '—'}</span>
+                        </div>
+                    </div>
+                    <div class="mobile-card-actions">
+                        ${user.hwid ? `<button onclick="resetUserHwid('${user.username}')" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrows-rotate"></i> Reset HWID</button>` : ''}
+                        <button onclick="deleteUser('${user.username}')" class="btn btn-red btn-sm"><i class="fa-solid fa-trash-can"></i> Delete</button>
+                    </div>
+                `;
+                mobileUsersContainer.appendChild(card);
+            }
         });
     }
     updateStats();
@@ -677,41 +1036,206 @@ async function resetUserHwid(username) {
 window.deleteUser = deleteUser;
 window.resetUserHwid = resetUserHwid;
 
-// Global Actions for Keys
-async function banLicense(key) {
-    try {
-        const response = await fetch(`/api/admin/licenses/${key}/ban`, { method: 'POST' });
-        if (response.ok) {
-            showToast('License key has been banned.');
-            fetchLicenses();
-        } else {
-            showToast('Failed to ban license.', true);
+// Pagination handler
+window.changeLicensePage = function(newPage) {
+    licenseCurrentPage = newPage;
+    renderLicensesTable();
+};
+
+// Selection Handlers
+window.toggleLicenseSelect = function(key, isChecked) {
+    if (isChecked) {
+        selectedLicenseKeys.add(key);
+    } else {
+        selectedLicenseKeys.delete(key);
+    }
+    updateBulkActionBar();
+};
+
+window.toggleSelectAllLicenses = function(isChecked) {
+    const checkboxes = document.querySelectorAll('.license-checkbox');
+    checkboxes.forEach(cb => {
+        const key = cb.getAttribute('data-key');
+        cb.checked = isChecked;
+        if (key) {
+            if (isChecked) selectedLicenseKeys.add(key);
+            else selectedLicenseKeys.delete(key);
         }
-    } catch (e) {
-        showToast('Server connection error!', true);
+    });
+    updateBulkActionBar();
+};
+
+const selectAllEl = document.getElementById('select-all-licenses');
+if (selectAllEl) {
+    selectAllEl.addEventListener('change', (e) => {
+        window.toggleSelectAllLicenses(e.target.checked);
+    });
+}
+
+function updateBulkActionBar() {
+    const bar = document.getElementById('bulk-actions-bar');
+    const countEl = document.getElementById('bulk-selected-count');
+    const selectAllCb = document.getElementById('select-all-licenses');
+    
+    const count = selectedLicenseKeys.size;
+    if (countEl) countEl.textContent = count;
+    
+    if (bar) {
+        if (count > 0) {
+            bar.classList.remove('hidden');
+        } else {
+            bar.classList.add('hidden');
+        }
+    }
+    
+    if (selectAllCb) {
+        const visibleCheckboxes = document.querySelectorAll('.license-checkbox');
+        if (visibleCheckboxes.length > 0) {
+            const allChecked = Array.from(visibleCheckboxes).every(cb => cb.checked);
+            selectAllCb.checked = allChecked;
+        } else {
+            selectAllCb.checked = false;
+        }
     }
 }
 
-async function unbanLicense(key) {
-    try {
-        const response = await fetch(`/api/admin/licenses/${key}/unban`, { method: 'POST' });
-        if (response.ok) {
-            showToast('License key has been unbanned.');
-            fetchLicenses();
-        } else {
-            showToast('Failed to unban license.', true);
+function clearLicenseSelection() {
+    selectedLicenseKeys.clear();
+    const selectAllCb = document.getElementById('select-all-licenses');
+    if (selectAllCb) selectAllCb.checked = false;
+    const checkboxes = document.querySelectorAll('.license-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    updateBulkActionBar();
+}
+window.clearLicenseSelection = clearLicenseSelection;
+
+const btnClearSel = document.getElementById('btn-clear-selection');
+if (btnClearSel) btnClearSel.addEventListener('click', clearLicenseSelection);
+
+// Reusable Confirmation Modal Helper
+let pendingConfirmCallback = null;
+function showConfirmModal({ title = 'Confirmation Required', message = 'Are you sure you want to proceed?', icon = 'fa-triangle-exclamation', confirmText = 'Confirm', confirmClass = 'btn-red', onConfirm }) {
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-modal-title');
+    const msgEl = document.getElementById('confirm-modal-message');
+    const btnAction = document.getElementById('btn-action-confirm');
+    
+    if (!modal) {
+        if (confirm(message)) {
+            if (onConfirm) onConfirm();
         }
-    } catch (e) {
+        return;
+    }
+    
+    if (titleEl) titleEl.innerHTML = `<i class="fa-solid ${icon} text-orange"></i> ${title}`;
+    if (msgEl) msgEl.textContent = message;
+    if (btnAction) {
+        btnAction.textContent = confirmText;
+        btnAction.className = `btn ${confirmClass}`;
+    }
+    
+    pendingConfirmCallback = onConfirm;
+    modal.classList.remove('hidden');
+}
+window.showConfirmModal = showConfirmModal;
+
+const btnCloseConfirm = document.getElementById('btn-close-confirm-modal');
+const btnCancelConfirm = document.getElementById('btn-cancel-confirm');
+const btnActionConfirm = document.getElementById('btn-action-confirm');
+
+if (btnCloseConfirm) btnCloseConfirm.onclick = () => document.getElementById('confirm-modal')?.classList.add('hidden');
+if (btnCancelConfirm) btnCancelConfirm.onclick = () => document.getElementById('confirm-modal')?.classList.add('hidden');
+if (btnActionConfirm) {
+    btnActionConfirm.onclick = async () => {
+        document.getElementById('confirm-modal')?.classList.add('hidden');
+        if (pendingConfirmCallback) {
+            await pendingConfirmCallback();
+            pendingConfirmCallback = null;
+        }
+    };
+}
+
+// License Pause / Unpause
+async function togglePauseLicense(key, isCurrentlyPaused) {
+    const endpoint = isCurrentlyPaused ? `/api/admin/licenses/${key}/unpause` : `/api/admin/licenses/${key}/pause`;
+    try {
+        const res = await fetch(endpoint, { method: 'POST' });
+        if (res.ok) {
+            showToast(isCurrentlyPaused ? 'License unpaused!' : 'License paused!');
+            await fetchLicenses();
+            closeDetailModal();
+        } else {
+            showToast('Failed to change pause state', true);
+        }
+    } catch(e) {
         showToast('Server connection error!', true);
     }
 }
+window.togglePauseLicense = togglePauseLicense;
 
+// License Ban / Unban
+async function toggleBanLicense(key, isCurrentlyBanned) {
+    const actionName = isCurrentlyBanned ? 'unban' : 'ban';
+    showConfirmModal({
+        title: `${actionName.toUpperCase()} License`,
+        message: `Are you sure you want to ${actionName} license key "${key}"?`,
+        confirmText: `${actionName.charAt(0).toUpperCase() + actionName.slice(1)} License`,
+        confirmClass: isCurrentlyBanned ? 'btn-green' : 'btn-red',
+        onConfirm: async () => {
+            try {
+                const endpoint = isCurrentlyBanned ? `/api/admin/licenses/${key}/unban` : `/api/admin/licenses/${key}/ban`;
+                const res = await fetch(endpoint, { method: 'POST' });
+                if (res.ok) {
+                    showToast(`License ${actionName}ned successfully!`);
+                    await fetchLicenses();
+                    closeDetailModal();
+                } else {
+                    showToast(`Failed to ${actionName} license`, true);
+                }
+            } catch(e) {
+                showToast('Server connection error!', true);
+            }
+        }
+    });
+}
+window.toggleBanLicense = toggleBanLicense;
+
+// License Revoke
+async function revokeLicense(key) {
+    showConfirmModal({
+        title: 'Revoke License',
+        message: `Are you sure you want to REVOKE license key "${key}"? This will permanently blacklist it.`,
+        confirmText: 'Revoke Key',
+        confirmClass: 'btn-red',
+        onConfirm: async () => {
+            try {
+                const res = await fetch(`/api/admin/licenses/${key}/revoke`, { method: 'POST' });
+                if (res.ok) {
+                    showToast('License revoked successfully!');
+                    await fetchLicenses();
+                    closeDetailModal();
+                } else {
+                    showToast('Failed to revoke license', true);
+                }
+            } catch(e) {
+                showToast('Server connection error!', true);
+            }
+        }
+    });
+}
+window.revokeLicense = revokeLicense;
+
+// HWID Reset
 async function resetHwid(key) {
     try {
         const response = await fetch(`/api/admin/licenses/${key}/reset_hwid`, { method: 'POST' });
         if (response.ok) {
             showToast('HWID reset successful.');
-            fetchLicenses();
+            await fetchLicenses();
+            const detailModal = document.getElementById('license-detail-modal');
+            if (detailModal && !detailModal.classList.contains('hidden')) {
+                showLicenseDetails(key);
+            }
         } else {
             showToast('Failed to reset HWID.', true);
         }
@@ -719,27 +1243,505 @@ async function resetHwid(key) {
         showToast('Server connection error!', true);
     }
 }
+window.resetHwid = resetHwid;
 
+// Delete single license
 async function deleteLicense(key) {
-    if (!confirm('Are you sure you want to delete this license and its associated user account?')) return;
-    try {
-        const response = await fetch(`/api/admin/licenses/${key}`, { method: 'DELETE' });
-        if (response.ok) {
-            showToast('License deleted successfully.');
-            fetchLicenses();
-        } else {
-            showToast('Failed to delete license.', true);
+    showConfirmModal({
+        title: 'Delete License',
+        message: `Are you sure you want to permanently delete license "${key}" and its associated user account?`,
+        confirmText: 'Delete License',
+        confirmClass: 'btn-red',
+        onConfirm: async () => {
+            try {
+                const response = await fetch(`/api/admin/licenses/${key}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showToast('License deleted successfully.');
+                    selectedLicenseKeys.delete(key);
+                    await fetchLicenses();
+                    closeDetailModal();
+                } else {
+                    showToast('Failed to delete license.', true);
+                }
+            } catch (e) {
+                showToast('Server connection error!', true);
+            }
         }
-    } catch (e) {
+    });
+}
+window.deleteLicense = deleteLicense;
+
+// ==========================================
+// LICENSE DETAILS MODAL
+// ==========================================
+async function showLicenseDetails(key) {
+    const modal = document.getElementById('license-detail-modal');
+    if (!modal) return;
+    
+    try {
+        const response = await fetch(`/api/admin/licenses/${key}`);
+        if (!response.ok) return showToast('Failed to load license details', true);
+        
+        const data = await response.json();
+        const lic = data.license || {};
+        const user = data.user;
+        const sessions = data.sessions || [];
+        
+        document.getElementById('detail-key-display').textContent = lic.key;
+        
+        const badgeEl = document.getElementById('detail-status-badge');
+        if (badgeEl) {
+            badgeEl.className = `badge badge-${(lic.status || 'UNUSED').toLowerCase()}`;
+            badgeEl.textContent = lic.status || 'UNUSED';
+        }
+        
+        document.getElementById('detail-user').textContent = lic.used_by || 'Unassigned (No User)';
+        
+        const remainingEl = document.getElementById('detail-remaining');
+        if (remainingEl) {
+            remainingEl.innerHTML = formatRemainingTime(lic.expires_at, lic.status);
+        }
+        
+        let durationText = 'Lifetime';
+        if (lic.duration_days && lic.duration_days > 0) {
+            durationText = lic.duration_days >= 1 ? `${lic.duration_days} Days` : `${Math.round(lic.duration_days * 24)} Hours`;
+        }
+        document.getElementById('detail-duration').textContent = durationText;
+        
+        document.getElementById('detail-expires').textContent = lic.expires_at 
+            ? (lic.expires_at === 'Lifetime' ? 'Never (Lifetime)' : new Date(lic.expires_at).toLocaleString()) 
+            : 'Not yet activated';
+            
+        document.getElementById('detail-created').textContent = lic.created_at ? new Date(lic.created_at).toLocaleString() : 'N/A';
+        document.getElementById('detail-note').textContent = lic.note || 'None';
+        document.getElementById('detail-hwid').textContent = lic.hwid || 'No hardware fingerprint bound';
+        
+        // Sessions
+        const sessBox = document.getElementById('detail-sessions-container');
+        if (sessBox) {
+            if (sessions.length === 0) {
+                sessBox.innerHTML = '<div class="text-muted" style="font-size:0.8rem;">No login sessions recorded yet.</div>';
+            } else {
+                sessBox.innerHTML = sessions.map(s => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.8rem;">
+                        <span><i class="fa-solid fa-desktop" style="color:var(--color-cyan); margin-right:4px;"></i> ${s.username}</span>
+                        <span class="text-muted font-mono" style="font-size:0.75rem;">${s.hwid ? s.hwid.substring(0, 14) + '...' : 'No HWID'}</span>
+                        <span class="text-muted">${new Date(s.login_time).toLocaleString()}</span>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // Contextual Actions Footer
+        const actionsContainer = document.getElementById('detail-actions-container');
+        if (actionsContainer) {
+            actionsContainer.innerHTML = `
+                <button class="btn btn-secondary btn-sm" onclick="showExtendModal('${lic.key}')"><i class="fa-solid fa-clock-rotate-left"></i> Extend</button>
+                <button class="btn btn-secondary btn-sm" onclick="resetHwid('${lic.key}')" ${!lic.hwid ? 'disabled' : ''}><i class="fa-solid fa-arrows-rotate"></i> Reset HWID</button>
+                <button class="btn btn-secondary btn-sm" onclick="togglePauseLicense('${lic.key}', ${lic.is_paused})"><i class="fa-solid ${lic.is_paused ? 'fa-play' : 'fa-pause'}"></i> ${lic.is_paused ? 'Unpause' : 'Pause'}</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleBanLicense('${lic.key}', ${lic.is_banned})"><i class="fa-solid ${lic.is_banned ? 'fa-unlock' : 'fa-ban'}"></i> ${lic.is_banned ? 'Unban' : 'Ban'}</button>
+                <button class="btn btn-purple btn-sm" onclick="revokeLicense('${lic.key}')"><i class="fa-solid fa-ban"></i> Revoke</button>
+                <button class="btn btn-red btn-sm" onclick="deleteLicense('${lic.key}')"><i class="fa-solid fa-trash-can"></i> Delete</button>
+            `;
+        }
+        
+        modal.classList.remove('hidden');
+    } catch(e) {
         showToast('Server connection error!', true);
     }
 }
+window.showLicenseDetails = showLicenseDetails;
 
-// Expose actions to global window scope
-window.banLicense = banLicense;
-window.unbanLicense = unbanLicense;
-window.resetHwid = resetHwid;
-window.deleteLicense = deleteLicense;
+function closeDetailModal() {
+    document.getElementById('license-detail-modal')?.classList.add('hidden');
+}
+window.closeDetailModal = closeDetailModal;
+
+const btnCloseDetailModal = document.getElementById('btn-close-detail-modal');
+if (btnCloseDetailModal) btnCloseDetailModal.onclick = closeDetailModal;
+
+const btnCopyDetailKey = document.getElementById('btn-copy-detail-key');
+if (btnCopyDetailKey) {
+    btnCopyDetailKey.onclick = () => {
+        const k = document.getElementById('detail-key-display')?.textContent;
+        if (k && k !== '---') {
+            navigator.clipboard.writeText(k);
+            showToast('Key copied to clipboard!');
+        }
+    };
+}
+
+// ==========================================
+// EXTEND LICENSE MODAL
+// ==========================================
+function showExtendModal(key, isBulk = false) {
+    const modal = document.getElementById('extend-license-modal');
+    if (!modal) return;
+    
+    document.getElementById('extend-target-key').value = key || '';
+    document.getElementById('extend-is-bulk').value = isBulk ? 'true' : 'false';
+    
+    const descEl = document.getElementById('extend-modal-desc');
+    if (descEl) {
+        descEl.textContent = isBulk 
+            ? `Grant additional time to all ${selectedLicenseKeys.size} selected licenses.`
+            : `Grant additional time to license key "${key}".`;
+    }
+    
+    // Reset custom fields
+    document.getElementById('extend-preset-select').value = '7';
+    document.getElementById('custom-extend-wrapper').classList.add('hidden');
+    document.getElementById('extend-custom-days').value = 0;
+    document.getElementById('extend-custom-hours').value = 0;
+    document.getElementById('extend-custom-minutes').value = 0;
+    
+    modal.classList.remove('hidden');
+}
+window.showExtendModal = showExtendModal;
+
+const extendPresetSelect = document.getElementById('extend-preset-select');
+if (extendPresetSelect) {
+    extendPresetSelect.addEventListener('change', (e) => {
+        const customWrap = document.getElementById('custom-extend-wrapper');
+        if (customWrap) {
+            if (e.target.value === 'custom') {
+                customWrap.classList.remove('hidden');
+            } else {
+                customWrap.classList.add('hidden');
+            }
+        }
+    });
+}
+
+const btnCloseExtendModal = document.getElementById('btn-close-extend-modal');
+if (btnCloseExtendModal) {
+    btnCloseExtendModal.onclick = () => document.getElementById('extend-license-modal')?.classList.add('hidden');
+}
+
+const extendForm = document.getElementById('extend-form');
+if (extendForm) {
+    extendForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const key = document.getElementById('extend-target-key').value;
+        const isBulk = document.getElementById('extend-is-bulk').value === 'true';
+        const preset = document.getElementById('extend-preset-select').value;
+        
+        let days = 0, hours = 0, minutes = 0;
+        if (preset === 'custom') {
+            days = parseFloat(document.getElementById('extend-custom-days').value) || 0;
+            hours = parseFloat(document.getElementById('extend-custom-hours').value) || 0;
+            minutes = parseFloat(document.getElementById('extend-custom-minutes').value) || 0;
+        } else {
+            days = parseFloat(preset) || 0;
+        }
+        
+        if (days === 0 && hours === 0 && minutes === 0) {
+            return showToast('Please select or specify an extension duration', true);
+        }
+        
+        if (isBulk) {
+            // Bulk Extend
+            try {
+                const res = await fetch('/api/admin/licenses/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app_id: activeAppId,
+                        action: 'extend',
+                        keys: Array.from(selectedLicenseKeys),
+                        extend_days: days,
+                        extend_hours: hours,
+                        extend_minutes: minutes
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Extended ${data.updated} licenses successfully!`);
+                    document.getElementById('extend-license-modal')?.classList.add('hidden');
+                    clearLicenseSelection();
+                    await fetchLicenses();
+                } else {
+                    showToast(data.detail || 'Bulk extend failed', true);
+                }
+            } catch(e) {
+                showToast('Server connection error!', true);
+            }
+        } else {
+            // Single Extend
+            try {
+                const res = await fetch(`/api/admin/licenses/${key}/extend`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days, hours, minutes })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('License extended successfully!');
+                    document.getElementById('extend-license-modal')?.classList.add('hidden');
+                    await fetchLicenses();
+                    const detailModal = document.getElementById('license-detail-modal');
+                    if (detailModal && !detailModal.classList.contains('hidden')) {
+                        showLicenseDetails(key);
+                    }
+                } else {
+                    showToast(data.detail || 'Failed to extend license', true);
+                }
+            } catch(e) {
+                showToast('Server connection error!', true);
+            }
+        }
+    });
+}
+
+// ==========================================
+// BULK ACTIONS HANDLER
+// ==========================================
+async function applyBulkAction() {
+    const actionSelect = document.getElementById('bulk-action-select');
+    const action = actionSelect ? actionSelect.value : '';
+    
+    if (!action) return showToast('Please select a bulk action to perform', true);
+    if (selectedLicenseKeys.size === 0) return showToast('No licenses selected', true);
+    
+    const count = selectedLicenseKeys.size;
+    
+    if (action === 'extend') {
+        showExtendModal(null, true);
+        return;
+    }
+    
+    const actionLabels = {
+        delete: `permanently DELETE ${count} licenses and their user accounts`,
+        revoke: `REVOKE ${count} licenses`,
+        ban: `BAN ${count} licenses`,
+        unban: `UNBAN ${count} licenses`,
+        pause: `PAUSE ${count} licenses`,
+        unpause: `UNPAUSE ${count} licenses`,
+        reset_hwid: `RESET HWID for ${count} licenses`
+    };
+    
+    showConfirmModal({
+        title: `Bulk ${action.toUpperCase()}`,
+        message: `Are you sure you want to ${actionLabels[action] || action}?`,
+        confirmText: `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+        confirmClass: action === 'delete' || action === 'revoke' || action === 'ban' ? 'btn-red' : 'btn-blue',
+        onConfirm: async () => {
+            try {
+                const res = await fetch('/api/admin/licenses/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app_id: activeAppId,
+                        action: action,
+                        keys: Array.from(selectedLicenseKeys)
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Successfully performed ${action} on ${data.updated} licenses!`);
+                    clearLicenseSelection();
+                    await fetchLicenses();
+                } else {
+                    showToast(data.detail || 'Bulk action failed', true);
+                }
+            } catch(e) {
+                showToast('Server connection error!', true);
+            }
+        }
+    });
+}
+window.applyBulkAction = applyBulkAction;
+
+const btnApplyBulk = document.getElementById('btn-apply-bulk-action');
+if (btnApplyBulk) btnApplyBulk.addEventListener('click', applyBulkAction);
+
+// ==========================================
+// ONE-CLICK EXPIRED CLEANUP
+// ==========================================
+async function deleteExpiredLicenses() {
+    if (!activeAppId) return showToast('Please select an application first', true);
+    
+    // Calculate how many are currently expired
+    const expiredCount = licensesList.filter(l => (l.status || '').toUpperCase() === 'EXPIRED').length;
+    
+    showConfirmModal({
+        title: 'Delete All Expired Licenses',
+        message: `Are you sure you want to permanently delete all expired licenses (${expiredCount} found)? This action cannot be undone.`,
+        confirmText: 'Delete All Expired',
+        confirmClass: 'btn-red',
+        onConfirm: async () => {
+            try {
+                const res = await fetch(`/api/admin/licenses/expired?app_id=${activeAppId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Cleaned up ${data.deleted} expired licenses!`);
+                    clearLicenseSelection();
+                    await fetchLicenses();
+                } else {
+                    showToast(data.detail || 'Failed to delete expired licenses', true);
+                }
+            } catch(e) {
+                showToast('Server connection error!', true);
+            }
+        }
+    });
+}
+window.deleteExpiredLicenses = deleteExpiredLicenses;
+
+const btnDeleteExpired = document.getElementById('btn-delete-expired');
+if (btnDeleteExpired) btnDeleteExpired.addEventListener('click', deleteExpiredLicenses);
+
+// ==========================================
+// EXPORT CSV
+// ==========================================
+function exportLicensesCSV() {
+    if (licensesList.length === 0) return showToast('No licenses available to export', true);
+    
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const statusFilter = filterStatus ? filterStatus.value.toLowerCase() : 'all';
+    
+    const filtered = licensesList.filter(lic => {
+        const status = (lic.status || 'UNUSED').toLowerCase();
+        const matchesSearch = !query || 
+            (lic.key && lic.key.toLowerCase().includes(query)) ||
+            (lic.used_by && lic.used_by.toLowerCase().includes(query)) ||
+            (lic.hwid && lic.hwid.toLowerCase().includes(query));
+        let matchesStatus = true;
+        if (statusFilter !== 'all') {
+            matchesStatus = status === statusFilter;
+        }
+        return matchesSearch && matchesStatus;
+    });
+    
+    if (filtered.length === 0) return showToast('No licenses match current filter for export', true);
+    
+    const headers = ['License Key', 'Status', 'Duration (Days)', 'User', 'HWID', 'Created At', 'Expires At', 'Note'];
+    const rows = filtered.map(l => [
+        `"${l.key}"`,
+        `"${l.status || 'UNUSED'}"`,
+        `"${l.duration_days || 0}"`,
+        `"${l.used_by || ''}"`,
+        `"${l.hwid || ''}"`,
+        `"${l.created_at || ''}"`,
+        `"${l.expires_at || ''}"`,
+        `"${(l.note || '').replace(/"/g, '""')}"`
+    ]);
+    
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `licenses_${activeAppId || 'export'}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Exported ${filtered.length} licenses as CSV!`);
+}
+window.exportLicensesCSV = exportLicensesCSV;
+
+const btnExportCsv = document.getElementById('btn-export-csv');
+if (btnExportCsv) btnExportCsv.addEventListener('click', exportLicensesCSV);
+
+const btnRefreshLicenses = document.getElementById('btn-refresh-licenses');
+if (btnRefreshLicenses) btnRefreshLicenses.addEventListener('click', () => { fetchLicenses(); showToast('Licenses refreshed'); });
+
+const perPageSelect = document.getElementById('licenses-per-page');
+if (perPageSelect) perPageSelect.addEventListener('change', () => { licenseCurrentPage = 1; renderLicensesTable(); });
+
+// ==========================================
+// EXPIRING SOON VIEW
+// ==========================================
+async function fetchExpiringSoon() {
+    if (!activeAppId) return;
+    const timeframeSelect = document.getElementById('expiring-timeframe');
+    const days = timeframeSelect ? timeframeSelect.value : 7;
+    
+    try {
+        const res = await fetch(`/api/admin/licenses/expiring_soon?app_id=${activeAppId}&days=${days}`);
+        if (res.ok) {
+            const data = await res.json();
+            expiringLicensesList = data.licenses || [];
+            renderExpiringSoonTable();
+        }
+    } catch(e) {
+        console.error('Failed to fetch expiring soon:', e);
+    }
+}
+window.fetchExpiringSoon = fetchExpiringSoon;
+
+function renderExpiringSoonTable() {
+    const tbody = document.getElementById('expiring-table-body');
+    const noMsg = document.getElementById('no-expiring-msg');
+    const mobileExpiringContainer = document.getElementById('mobile-expiring-list');
+    if (mobileExpiringContainer) mobileExpiringContainer.innerHTML = '';
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (expiringLicensesList.length === 0) {
+        if (noMsg) noMsg.classList.remove('hidden');
+    } else {
+        if (noMsg) noMsg.classList.add('hidden');
+        expiringLicensesList.forEach(lic => {
+            const tr = document.createElement('tr');
+            const statusBadge = `<span class="badge badge-${(lic.status || 'ACTIVE').toLowerCase()}">${lic.status || 'ACTIVE'}</span>`;
+            const remaining = formatRemainingTime(lic.expires_at, lic.status);
+            
+            tr.innerHTML = `
+                <td class="license-key-cell">
+                    <span style="cursor:pointer;" onclick="showLicenseDetails('${lic.key}')">${lic.key}</span>
+                </td>
+                <td>${lic.used_by || '<span class="text-muted">—</span>'}</td>
+                <td>${new Date(lic.expires_at).toLocaleString()}</td>
+                <td>${remaining}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button onclick="showExtendModal('${lic.key}')" class="btn btn-primary btn-sm"><i class="fa-solid fa-clock-rotate-left"></i> Extend</button>
+                        <button onclick="showLicenseDetails('${lic.key}')" class="btn btn-secondary btn-sm"><i class="fa-solid fa-eye"></i> View</button>
+                        <button onclick="revokeLicense('${lic.key}')" class="btn btn-purple btn-sm"><i class="fa-solid fa-ban"></i> Revoke</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            if (mobileExpiringContainer) {
+                const card = document.createElement('div');
+                card.className = 'mobile-card-item';
+                card.innerHTML = `
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">
+                            <span onclick="showLicenseDetails('${lic.key}')">${lic.key}</span>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div class="mobile-card-grid">
+                        <div class="mobile-card-field">
+                            <span class="mobile-card-label">User</span>
+                            <span class="mobile-card-val">${lic.used_by || '—'}</span>
+                        </div>
+                        <div class="mobile-card-field">
+                            <span class="mobile-card-label">Time Remaining</span>
+                            <span class="mobile-card-val">${remaining}</span>
+                        </div>
+                        <div class="mobile-card-field" style="grid-column: 1 / -1;">
+                            <span class="mobile-card-label">Expiration Date</span>
+                            <span class="mobile-card-val" style="font-size:0.75rem;">${new Date(lic.expires_at).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="mobile-card-actions">
+                        <button onclick="showExtendModal('${lic.key}')" class="btn btn-primary btn-sm"><i class="fa-solid fa-clock-rotate-left"></i> Extend</button>
+                        <button onclick="showLicenseDetails('${lic.key}')" class="btn btn-secondary btn-sm"><i class="fa-solid fa-eye"></i> View</button>
+                        <button onclick="revokeLicense('${lic.key}')" class="btn btn-purple btn-sm"><i class="fa-solid fa-ban"></i> Revoke</button>
+                    </div>
+                `;
+                mobileExpiringContainer.appendChild(card);
+            }
+        });
+    }
+}
+
+const expiringTimeframeSelect = document.getElementById('expiring-timeframe');
+if (expiringTimeframeSelect) expiringTimeframeSelect.addEventListener('change', fetchExpiringSoon);
 
 // Event Listeners
 let isLoginMode = true;
@@ -1055,6 +2057,20 @@ navItems.forEach(item => {
     });
 });
 
+// Duration preset change listener for Generate Keys modal
+if (durationSelect) {
+    durationSelect.addEventListener('change', (e) => {
+        const customWrap = document.getElementById('custom-duration-wrapper');
+        if (customWrap) {
+            if (e.target.value === 'custom') {
+                customWrap.classList.remove('hidden');
+            } else {
+                customWrap.classList.add('hidden');
+            }
+        }
+    });
+}
+
 // Generate Keys form trigger
 generateForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1063,23 +2079,53 @@ generateForm.addEventListener('submit', async (e) => {
         return;
     }
     
-    const duration = parseInt(durationSelect.value);
-    const count = parseInt(countInput.value);
+    const count = parseInt(countInput.value) || 1;
     const note = noteInput ? noteInput.value.trim() : '';
-    
+    const customPrefix = document.getElementById('gen-custom-prefix')?.value?.trim() || null;
     const subscriptionId = document.getElementById('license-subscription-id')?.value || null;
     
+    const durationVal = durationSelect.value;
+    let duration_days = null;
+    let duration_hours = null;
+    let duration_minutes = null;
+    
+    if (durationVal === 'custom') {
+        const days = parseFloat(document.getElementById('custom-days')?.value) || 0;
+        const hours = parseFloat(document.getElementById('custom-hours')?.value) || 0;
+        const minutes = parseFloat(document.getElementById('custom-minutes')?.value) || 0;
+        
+        if (days === 0 && hours === 0 && minutes === 0) {
+            return showToast('Please enter a valid custom duration', true);
+        }
+        duration_days = days;
+        duration_hours = hours;
+        duration_minutes = minutes;
+    } else {
+        duration_days = parseFloat(durationVal);
+    }
+    
     try {
+        const payload = {
+            app_id: activeAppId,
+            count: count,
+            duration_days: duration_days,
+            duration_hours: duration_hours,
+            duration_minutes: duration_minutes,
+            custom_prefix: customPrefix,
+            subscription_id: subscriptionId,
+            note: note
+        };
+        
         const response = await fetch('/api/admin/licenses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ app_id: activeAppId, duration_days: duration, count, subscription_id: subscriptionId, note })
+            body: JSON.stringify(payload)
         });
         
         const data = await response.json();
         
         if (response.ok) {
-            showToast(`${count} license keys generated!`);
+            showToast(`${count} license key${count > 1 ? 's' : ''} generated successfully!`);
             
             const listEl = document.getElementById('generated-keys-list');
             const wrapperEl = document.getElementById('generated-keys-wrapper');
@@ -1090,7 +2136,7 @@ generateForm.addEventListener('submit', async (e) => {
                     const li = document.createElement('li');
                     li.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:6px; border:1px solid var(--border-color);';
                     li.innerHTML = `
-                        <span style="font-family:var(--font-mono); font-size:0.85rem; color:var(--text-main); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">${key}</span>
+                        <span style="font-family:var(--font-mono); font-size:0.85rem; color:var(--color-cyan); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">${key}</span>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${key}'); showToast('Key copied!');"><i class="fa-solid fa-copy"></i> Copy</button>
                     `;
                     listEl.appendChild(li);
@@ -1098,12 +2144,10 @@ generateForm.addEventListener('submit', async (e) => {
             }
             
             if (wrapperEl) wrapperEl.classList.remove('hidden');
-            if (generateForm) generateForm.reset();
-            if (countInput) countInput.value = 1;
-            if (durationSelect) durationSelect.value = 30;
             fetchLicenses();
+            fetchStats();
         } else {
-            showToast(data, true);
+            showToast(data.detail || 'Failed to generate licenses', true);
         }
     } catch (error) {
         showToast('Server connection error!', true);
@@ -1142,8 +2186,20 @@ if (btnGenerateKeysModal) {
             showToast('Please select or create an application first.', true);
             return;
         }
-        generatedKeysWrapper.classList.add('hidden');
-        generateForm.reset();
+        if (generatedKeysWrapper) generatedKeysWrapper.classList.add('hidden');
+        if (document.getElementById('custom-duration-wrapper')) {
+            document.getElementById('custom-duration-wrapper').classList.add('hidden');
+        }
+        if (durationSelect) durationSelect.value = '30';
+        if (countInput) countInput.value = '1';
+        
+        // Auto-fill prefix
+        const activeApp = appsList.find(a => a.id === activeAppId);
+        const prefixInput = document.getElementById('gen-custom-prefix');
+        if (prefixInput && activeApp) {
+            prefixInput.value = (activeApp.rules && activeApp.rules.key_prefix) ? activeApp.rules.key_prefix : 'AXC';
+        }
+        
         generateKeysModal.classList.remove('hidden');
     });
 }

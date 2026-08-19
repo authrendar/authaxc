@@ -9,7 +9,7 @@ import secrets
 import string
 import pyotp
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 def generate_app_key(prefix: str = "AnikXCheats") -> str:
@@ -299,14 +299,147 @@ def delete_app(app_id: str, username: str = Depends(get_current_admin)):
     db.logs_collection.delete_many({"app_id": app_id})
     return {"status": "success", "message": "Application and all associated data deleted"}
 
+# --- LICENSE STATUS & TIME HELPERS ---
+def _parse_iso_datetime(dt_str: str) -> tuple[datetime, datetime]:
+    """Returns (exp_time, now_time) both either aware (UTC) or naive."""
+    cleaned = dt_str.replace("Z", "+00:00")
+    exp_time = datetime.fromisoformat(cleaned)
+    if exp_time.tzinfo is not None:
+        now_time = datetime.now(timezone.utc)
+    else:
+        now_time = datetime.utcnow()
+    return exp_time, now_time
+
+def get_license_status(lic: dict) -> str:
+    if lic.get("is_revoked"):
+        return "REVOKED"
+    if lic.get("is_banned"):
+        return "BANNED"
+    if lic.get("is_paused"):
+        return "PAUSED"
+    if not lic.get("is_used"):
+        return "UNUSED"
+    expires_at = lic.get("expires_at")
+    if expires_at and expires_at != "Lifetime":
+        try:
+            exp_time, now_time = _parse_iso_datetime(expires_at)
+            if now_time > exp_time:
+                return "EXPIRED"
+        except Exception:
+            pass
+    return "ACTIVE"
+
+def get_remaining_time_str(expires_at: str, status: str) -> str:
+    if status in ["BANNED", "REVOKED"]:
+        return status.capitalize()
+    if status == "PAUSED":
+        return "Paused"
+    if not expires_at:
+        return "Unused"
+    if expires_at == "Lifetime":
+        return "Lifetime"
+    try:
+        exp_time, now_time = _parse_iso_datetime(expires_at)
+        if now_time >= exp_time:
+            return "Expired"
+        diff = exp_time - now_time
+        days = diff.days
+        hours, rem = divmod(diff.seconds, 3600)
+        minutes, _ = divmod(rem, 60)
+        if days > 0:
+            return f"{days}d {hours:02d}h"
+        elif hours > 0:
+            return f"{hours}h {minutes:02d}m"
+        else:
+            return f"{minutes}m"
+    except Exception:
+        return "N/A"
+
+def format_license_doc(lic: dict) -> dict:
+    status = get_license_status(lic)
+    remaining = get_remaining_time_str(lic.get("expires_at"), status)
+    doc = dict(lic)
+    doc["status"] = status
+    doc["remaining_time"] = remaining
+    return doc
+
 # --- ADMIN LICENSE MANAGEMENT ---
 @app.get("/api/admin/licenses")
-def list_licenses(app_id: str = None, username: str = Depends(get_current_admin)):
+def list_licenses(
+    app_id: str = None,
+    search: str = None,
+    status: str = None,
+    page: int = None,
+    limit: int = None,
+    username: str = Depends(get_current_admin)
+):
     query = {}
     if app_id:
         query["app_id"] = app_id
-    licenses = list(db.licenses_collection.find(query, {"_id": 0}))
-    return licenses
+        
+    raw_licenses = list(db.licenses_collection.find(query, {"_id": 0}).sort("created_at", -1))
+    
+    formatted = []
+    now_iso = datetime.utcnow().isoformat()
+    now_dt = datetime.utcnow()
+    
+    for lic in raw_licenses:
+        doc = format_license_doc(lic)
+        
+        # Search filter (key, user, hwid, note)
+        if search and search.strip():
+            s = search.strip().lower()
+            key_match = s in doc.get("key", "").lower()
+            user_match = s in (doc.get("used_by") or "").lower()
+            hwid_match = s in (doc.get("hwid") or "").lower()
+            note_match = s in (doc.get("note") or "").lower()
+            if not (key_match or user_match or hwid_match or note_match):
+                continue
+                
+        # Status filter
+        if status and status.lower() != "all":
+            stat = status.upper()
+            if stat == "ACTIVE":
+                if doc["status"] != "ACTIVE":
+                    continue
+            elif stat == "UNUSED":
+                if doc["status"] != "UNUSED":
+                    continue
+            elif stat == "USED":
+                if not doc.get("is_used"):
+                    continue
+            elif stat == "EXPIRED":
+                if doc["status"] != "EXPIRED":
+                    continue
+            elif stat == "PAUSED":
+                if doc["status"] != "PAUSED":
+                    continue
+            elif stat == "BANNED":
+                if doc["status"] != "BANNED":
+                    continue
+            elif stat == "REVOKED":
+                if doc["status"] != "REVOKED":
+                    continue
+                    
+        formatted.append(doc)
+        
+    total_count = len(formatted)
+    
+    # If pagination parameters requested
+    if page is not None and limit is not None and limit > 0:
+        start = (page - 1) * limit
+        end = start + limit
+        paginated = formatted[start:end]
+        import math
+        return {
+            "licenses": paginated,
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": math.ceil(total_count / limit) if total_count > 0 else 1
+        }
+        
+    return formatted
 
 @app.post("/api/admin/licenses")
 def generate_licenses(data: models.LicenseGenerate, username: str = Depends(get_current_admin)):
@@ -314,24 +447,31 @@ def generate_licenses(data: models.LicenseGenerate, username: str = Depends(get_
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
         
+    # Calculate duration
+    total_days = (data.duration_days or 0) + ((data.duration_hours or 0) / 24.0) + ((data.duration_minutes or 0) / 1440.0)
+    total_seconds = int((total_days * 86400))
+    
     generated_keys = []
     now = datetime.utcnow()
     sub_id = data.subscription_id if data.subscription_id and data.subscription_id.strip() else None
     
     rules = app.get("rules") or {}
-    custom_prefix = rules.get("key_prefix") or "AnikXCheats"
+    custom_prefix = data.custom_prefix.strip() if data.custom_prefix and data.custom_prefix.strip() else (rules.get("key_prefix") or "AnikXCheats")
     
     for _ in range(data.count):
         key = generate_app_key(custom_prefix)
         lic_doc = {
             "key": key,
             "app_id": data.app_id,
-            "duration_days": data.duration_days,
+            "duration_days": round(total_days, 4),
+            "duration_seconds": total_seconds,
             "subscription_id": sub_id,
             "is_used": False,
             "used_by": None,
             "expires_at": None,
             "is_banned": False,
+            "is_paused": False,
+            "is_revoked": False,
             "note": data.note or "",
             "hwid": None,
             "created_at": now.isoformat()
@@ -339,8 +479,312 @@ def generate_licenses(data: models.LicenseGenerate, username: str = Depends(get_
         db.licenses_collection.insert_one(lic_doc)
         generated_keys.append(key)
         
-    log_event(data.app_id, "License Generate", f"Generated {data.count} keys (duration: {data.duration_days} days)")
+    duration_label = f"{round(total_days, 2)} days" if total_days > 0 else "Lifetime"
+    log_event(data.app_id, "License Generate", f"Admin '{username}' generated {data.count} keys (duration: {duration_label}, prefix: {custom_prefix})")
     return {"status": "success", "keys": generated_keys}
+
+# --- BULK, EXPIRED CLEANUP, EXPIRING SOON & STATS (Exact Routes First) ---
+@app.post("/api/admin/licenses/bulk")
+def bulk_license_action(data: models.BulkLicenseAction, username: str = Depends(get_current_admin)):
+    keys = list(set(data.keys))
+    if not keys:
+        raise HTTPException(status_code=400, detail="No licenses provided")
+        
+    action = data.action.lower()
+    updated = 0
+    skipped = 0
+    failed = 0
+    
+    if action == "delete":
+        for k in keys:
+            lic = db.licenses_collection.find_one({"key": k, "app_id": data.app_id})
+            if lic:
+                if lic.get("used_by") and lic["used_by"] not in ["Key-Only", "LicenseOnly"]:
+                    db.users_collection.delete_one({"username": lic["used_by"], "app_id": data.app_id})
+                db.licenses_collection.delete_one({"key": k, "app_id": data.app_id})
+                updated += 1
+            else:
+                skipped += 1
+        log_event(data.app_id, "Bulk Delete", f"Admin '{username}' bulk deleted {updated} licenses")
+        
+    elif action == "ban":
+        res = db.licenses_collection.update_many(
+            {"key": {"$in": keys}, "app_id": data.app_id},
+            {"$set": {"is_banned": True}}
+        )
+        updated = res.modified_count
+        log_event(data.app_id, "Bulk Ban", f"Admin '{username}' bulk banned {updated} licenses")
+        
+    elif action == "unban":
+        res = db.licenses_collection.update_many(
+            {"key": {"$in": keys}, "app_id": data.app_id},
+            {"$set": {"is_banned": False, "is_revoked": False}}
+        )
+        updated = res.modified_count
+        log_event(data.app_id, "Bulk Unban", f"Admin '{username}' bulk unbanned {updated} licenses")
+        
+    elif action == "pause":
+        res = db.licenses_collection.update_many(
+            {"key": {"$in": keys}, "app_id": data.app_id},
+            {"$set": {"is_paused": True}}
+        )
+        updated = res.modified_count
+        log_event(data.app_id, "Bulk Pause", f"Admin '{username}' bulk paused {updated} licenses")
+        
+    elif action == "unpause":
+        res = db.licenses_collection.update_many(
+            {"key": {"$in": keys}, "app_id": data.app_id},
+            {"$set": {"is_paused": False}}
+        )
+        updated = res.modified_count
+        log_event(data.app_id, "Bulk Unpause", f"Admin '{username}' bulk unpaused {updated} licenses")
+        
+    elif action == "revoke":
+        res = db.licenses_collection.update_many(
+            {"key": {"$in": keys}, "app_id": data.app_id},
+            {"$set": {"is_revoked": True, "is_banned": True}}
+        )
+        updated = res.modified_count
+        log_event(data.app_id, "Bulk Revoke", f"Admin '{username}' bulk revoked {updated} licenses")
+        
+    elif action == "reset_hwid":
+        for k in keys:
+            lic = db.licenses_collection.find_one({"key": k, "app_id": data.app_id})
+            if lic:
+                db.licenses_collection.update_one({"key": k}, {"$set": {"hwid": None}})
+                if lic.get("used_by") and lic["used_by"] not in ["Key-Only", "LicenseOnly"]:
+                    db.users_collection.update_one({"username": lic["used_by"], "app_id": data.app_id}, {"$set": {"hwid": None}})
+                updated += 1
+        log_event(data.app_id, "Bulk HWID Reset", f"Admin '{username}' bulk reset HWID for {updated} licenses")
+        
+    elif action == "extend":
+        total_seconds = int(((data.extend_days or 0) * 86400) + ((data.extend_hours or 0) * 3600) + ((data.extend_minutes or 0) * 60))
+        if total_seconds <= 0:
+            raise HTTPException(status_code=400, detail="Extension duration must be greater than 0")
+        now = datetime.utcnow()
+        for k in keys:
+            lic = db.licenses_collection.find_one({"key": k, "app_id": data.app_id})
+            if not lic or lic.get("expires_at") == "Lifetime":
+                skipped += 1
+                continue
+            if lic.get("is_used") and lic.get("expires_at"):
+                try:
+                    cur_exp = datetime.fromisoformat(lic["expires_at"])
+                    base_time = max(cur_exp, now)
+                except Exception:
+                    base_time = now
+                new_exp = base_time + timedelta(seconds=total_seconds)
+                db.licenses_collection.update_one({"key": k}, {"$set": {"expires_at": new_exp.isoformat()}})
+                updated += 1
+            else:
+                new_days = (lic.get("duration_days") or 0) + (total_seconds / 86400.0)
+                db.licenses_collection.update_one({"key": k}, {"$set": {"duration_days": round(new_days, 4)}})
+                updated += 1
+        ext_label = f"{data.extend_days or 0}d {data.extend_hours or 0}h {data.extend_minutes or 0}m"
+        log_event(data.app_id, "Bulk Extend", f"Admin '{username}' bulk extended {updated} licenses by {ext_label}")
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported bulk action: {action}")
+        
+    return {
+        "status": "success",
+        "action": action,
+        "updated": updated,
+        "skipped": skipped,
+        "failed": failed,
+        "message": f"Successfully performed {action} on {updated} licenses"
+    }
+
+@app.delete("/api/admin/licenses/cleanup/expired")
+@app.delete("/api/admin/licenses/expired")
+def delete_expired_licenses(app_id: str, username: str = Depends(get_current_admin)):
+    now_iso = datetime.utcnow().isoformat()
+    # Find expired licenses
+    expired_licenses = list(db.licenses_collection.find({
+        "app_id": app_id,
+        "expires_at": {"$ne": "Lifetime", "$exists": True, "$ne": None, "$lt": now_iso}
+    }))
+    
+    count = 0
+    for lic in expired_licenses:
+        if lic.get("used_by") and lic["used_by"] not in ["Key-Only", "LicenseOnly"]:
+            db.users_collection.delete_one({"username": lic["used_by"], "app_id": app_id})
+        db.licenses_collection.delete_one({"key": lic["key"], "app_id": app_id})
+        count += 1
+        
+    log_event(app_id, "Expired Cleanup", f"Admin '{username}' cleaned up {count} expired licenses")
+    return {"success": True, "deleted": count, "message": f"Deleted {count} expired licenses"}
+
+@app.get("/api/admin/licenses/expiring_soon")
+def list_expiring_soon(app_id: str, days: int = 7, username: str = Depends(get_current_admin)):
+    now = datetime.utcnow()
+    limit_time = (now + timedelta(days=days)).isoformat()
+    now_iso = now.isoformat()
+    
+    licenses = list(db.licenses_collection.find({
+        "app_id": app_id,
+        "is_banned": False,
+        "is_revoked": False,
+        "expires_at": {
+            "$ne": "Lifetime",
+            "$exists": True,
+            "$ne": None,
+            "$gte": now_iso,
+            "$lte": limit_time
+        }
+    }, {"_id": 0}).sort("expires_at", 1))
+    
+    formatted = [format_license_doc(lic) for lic in licenses]
+    return {"status": "success", "licenses": formatted, "count": len(formatted)}
+
+@app.get("/api/admin/stats")
+def get_dashboard_stats(app_id: str = None, username: str = Depends(get_current_admin)):
+    query = {}
+    if app_id:
+        query["app_id"] = app_id
+        
+    now = datetime.utcnow()
+    now_iso = now.isoformat()
+    today_start = datetime(now.year, now.month, now.day).isoformat()
+    expiring_soon_limit = (now + timedelta(days=7)).isoformat()
+    
+    all_lics = list(db.licenses_collection.find(query, {"_id": 0}))
+    total_licenses = len(all_lics)
+    
+    active_licenses = 0
+    unused_licenses = 0
+    expired_licenses = 0
+    banned_licenses = 0
+    paused_licenses = 0
+    expiring_soon = 0
+    
+    for lic in all_lics:
+        status = get_license_status(lic)
+        if status == "ACTIVE":
+            active_licenses += 1
+            exp_at = lic.get("expires_at")
+            if exp_at and exp_at != "Lifetime" and now_iso <= exp_at <= expiring_soon_limit:
+                expiring_soon += 1
+        elif status == "UNUSED":
+            unused_licenses += 1
+        elif status == "EXPIRED":
+            expired_licenses += 1
+        elif status == "BANNED" or status == "REVOKED":
+            banned_licenses += 1
+        elif status == "PAUSED":
+            paused_licenses += 1
+            
+    # Active sessions query
+    sess_query = {}
+    if app_id:
+        sess_query["app_id"] = app_id
+    active_sessions = db.sessions_collection.count_documents(sess_query)
+    
+    # Today's activations
+    today_activations_query = {"created_at": {"$gte": today_start}}
+    if app_id:
+        today_activations_query["app_id"] = app_id
+    today_activations = db.licenses_collection.count_documents(today_activations_query)
+    
+    total_apps = db.apps_collection.count_documents({})
+    
+    return {
+        "status": "success",
+        "stats": {
+            "total_apps": total_apps,
+            "total_licenses": total_licenses,
+            "active_licenses": active_licenses,
+            "unused_licenses": unused_licenses,
+            "expired_licenses": expired_licenses,
+            "banned_licenses": banned_licenses,
+            "paused_licenses": paused_licenses,
+            "active_sessions": active_sessions,
+            "today_activations": today_activations,
+            "expiring_soon": expiring_soon
+        }
+    }
+
+# --- SINGLE LICENSE ROUTES ---
+@app.get("/api/admin/licenses/detail/{key}")
+@app.get("/api/admin/licenses/{key}")
+def get_license_detail(key: str, username: str = Depends(get_current_admin)):
+    lic = db.licenses_collection.find_one({"key": key}, {"_id": 0})
+    if not lic:
+        raise HTTPException(status_code=404, detail="License key not found")
+        
+    formatted = format_license_doc(lic)
+    user_info = None
+    if lic.get("used_by") and lic["used_by"] != "Key-Only" and lic["used_by"] != "LicenseOnly":
+        user_info = db.users_collection.find_one({"username": lic["used_by"], "app_id": lic["app_id"]}, {"_id": 0, "password": 0})
+        
+    recent_sessions = list(db.sessions_collection.find({"app_id": lic["app_id"], "$or": [{"username": lic.get("used_by")}, {"hwid": lic.get("hwid")}]}, {"_id": 0}).sort("login_time", -1).limit(5))
+    
+    return {
+        "status": "success",
+        "license": formatted,
+        "user": user_info,
+        "sessions": recent_sessions
+    }
+
+@app.post("/api/admin/licenses/{key}/extend")
+def extend_license(key: str, data: models.LicenseExtend, username: str = Depends(get_current_admin)):
+    lic = db.licenses_collection.find_one({"key": key})
+    if not lic:
+        raise HTTPException(status_code=404, detail="License key not found")
+        
+    total_seconds = int(((data.days or 0) * 86400) + ((data.hours or 0) * 3600) + ((data.minutes or 0) * 60))
+    if total_seconds <= 0:
+        raise HTTPException(status_code=400, detail="Extension duration must be greater than 0")
+        
+    if lic.get("expires_at") == "Lifetime":
+        return {"status": "success", "message": "License is Lifetime, no extension needed", "expires_at": "Lifetime"}
+        
+    now = datetime.utcnow()
+    new_expiry_str = None
+    
+    if lic.get("is_used") and lic.get("expires_at"):
+        try:
+            cur_exp = datetime.fromisoformat(lic["expires_at"])
+            base_time = max(cur_exp, now)
+        except Exception:
+            base_time = now
+        new_exp = base_time + timedelta(seconds=total_seconds)
+        new_expiry_str = new_exp.isoformat()
+        db.licenses_collection.update_one({"key": key}, {"$set": {"expires_at": new_expiry_str}})
+    else:
+        # Unused license: increase duration_days
+        new_days = (lic.get("duration_days") or 0) + (total_seconds / 86400.0)
+        db.licenses_collection.update_one({"key": key}, {"$set": {"duration_days": round(new_days, 4)}})
+        
+    ext_label = f"{data.days or 0}d {data.hours or 0}h {data.minutes or 0}m"
+    log_event(lic["app_id"], "License Extend", f"Admin '{username}' extended key '{key}' by {ext_label}")
+    return {"status": "success", "message": "License extended successfully", "new_expires_at": new_expiry_str}
+
+@app.post("/api/admin/licenses/{key}/pause")
+def pause_license(key: str, username: str = Depends(get_current_admin)):
+    lic = db.licenses_collection.find_one({"key": key})
+    if not lic:
+        raise HTTPException(status_code=404, detail="License key not found")
+    db.licenses_collection.update_one({"key": key}, {"$set": {"is_paused": True}})
+    log_event(lic["app_id"], "License Pause", f"Admin '{username}' paused key '{key}'")
+    return {"status": "success", "message": "License paused successfully"}
+
+@app.post("/api/admin/licenses/{key}/unpause")
+def unpause_license(key: str, username: str = Depends(get_current_admin)):
+    lic = db.licenses_collection.find_one({"key": key})
+    if not lic:
+        raise HTTPException(status_code=404, detail="License key not found")
+    db.licenses_collection.update_one({"key": key}, {"$set": {"is_paused": False}})
+    log_event(lic["app_id"], "License Unpause", f"Admin '{username}' unpaused key '{key}'")
+    return {"status": "success", "message": "License unpaused successfully"}
+
+@app.post("/api/admin/licenses/{key}/revoke")
+def revoke_license(key: str, username: str = Depends(get_current_admin)):
+    lic = db.licenses_collection.find_one({"key": key})
+    if not lic:
+        raise HTTPException(status_code=404, detail="License key not found")
+    db.licenses_collection.update_one({"key": key}, {"$set": {"is_revoked": True, "is_banned": True}})
+    log_event(lic["app_id"], "License Revoke", f"Admin '{username}' revoked key '{key}'")
+    return {"status": "success", "message": "License revoked successfully"}
 
 # --- SELLER / PUBLIC API ENDPOINTS ---
 @app.post("/api/seller/generate")
@@ -369,6 +813,8 @@ def seller_generate_licenses(data: models.SellerKeyGenerate):
             "used_by": None,
             "expires_at": None,
             "is_banned": False,
+            "is_paused": False,
+            "is_revoked": False,
             "note": data.note or "API Generated",
             "hwid": None,
             "created_at": now.isoformat()
@@ -409,6 +855,8 @@ def seller_create_user(data: models.SellerUserCreate):
         "used_by": data.username,
         "expires_at": expiry,
         "is_banned": False,
+        "is_paused": False,
+        "is_revoked": False,
         "note": data.note or "Seller API Created",
         "hwid": None,
         "created_at": datetime.utcnow().isoformat()
@@ -435,7 +883,7 @@ def delete_license(key: str, username: str = Depends(get_current_admin)):
     if not lic:
         raise HTTPException(status_code=404, detail="License key not found")
         
-    if lic["used_by"] and lic["used_by"] != "Key-Only":
+    if lic.get("used_by") and lic["used_by"] not in ["Key-Only", "LicenseOnly"]:
         db.users_collection.delete_one({"username": lic["used_by"], "app_id": lic["app_id"]})
         
     db.licenses_collection.delete_one({"key": key})
@@ -456,7 +904,7 @@ def unban_license(key: str, username: str = Depends(get_current_admin)):
     lic = db.licenses_collection.find_one({"key": key})
     if not lic:
         raise HTTPException(status_code=404, detail="License key not found")
-    db.licenses_collection.update_one({"key": key}, {"$set": {"is_banned": False}})
+    db.licenses_collection.update_one({"key": key}, {"$set": {"is_banned": False, "is_revoked": False}})
     log_event(lic["app_id"], "License Unban", f"Unbanned key '{key}'")
     return {"status": "success", "message": "License unbanned successfully"}
 
@@ -467,7 +915,7 @@ def reset_hwid(key: str, username: str = Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail="License key not found")
         
     db.licenses_collection.update_one({"key": key}, {"$set": {"hwid": None}})
-    if lic["used_by"] and lic["used_by"] != "Key-Only":
+    if lic.get("used_by") and lic["used_by"] not in ["Key-Only", "LicenseOnly"]:
         db.users_collection.update_one({"username": lic["used_by"], "app_id": lic["app_id"]}, {"$set": {"hwid": None}})
         
     log_event(lic["app_id"], "HWID Reset", f"Reset HWID for key '{key}'")
@@ -567,8 +1015,11 @@ def client_register(data: models.ClientRegister):
     if lic["is_used"]:
         raise HTTPException(status_code=400, detail="License key already in use")
         
-    if lic["is_banned"]:
-        raise HTTPException(status_code=400, detail="License key has been banned")
+    if lic.get("is_banned") or lic.get("is_revoked"):
+        raise HTTPException(status_code=400, detail="License key has been banned or revoked")
+        
+    if lic.get("is_paused"):
+        raise HTTPException(status_code=400, detail="License key is currently paused by administrator")
         
     if db.users_collection.find_one({"username": data.username, "app_id": data.app_id}):
         raise HTTPException(status_code=400, detail="Username already exists in this application")
@@ -634,8 +1085,11 @@ def client_login(data: models.ClientLogin):
     if not lic:
         raise HTTPException(status_code=400, detail="No license linked to this user")
         
-    if lic["is_banned"]:
-        raise HTTPException(status_code=403, detail="Your license has been banned")
+    if lic.get("is_banned") or lic.get("is_revoked"):
+        raise HTTPException(status_code=403, detail="Your license has been banned or revoked")
+        
+    if lic.get("is_paused"):
+        raise HTTPException(status_code=403, detail="Your license is currently paused by administrator")
         
     if lic["expires_at"] and lic["expires_at"] != "Lifetime":
         exp_time = datetime.fromisoformat(lic["expires_at"])
@@ -694,8 +1148,11 @@ def client_license_login(data: models.ClientLicenseLogin):
     if not lic:
         raise HTTPException(status_code=400, detail="Invalid license key for this application")
         
-    if lic["is_banned"]:
-        raise HTTPException(status_code=403, detail="Your license has been banned")
+    if lic.get("is_banned") or lic.get("is_revoked"):
+        raise HTTPException(status_code=403, detail="Your license has been banned or revoked")
+        
+    if lic.get("is_paused"):
+        raise HTTPException(status_code=403, detail="Your license is currently paused by administrator")
         
     if not lic["is_used"]:
         expiry = None
