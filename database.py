@@ -22,10 +22,29 @@ client = MongoClient(
     w="majority"
 )
 
-try:
-    db = client.get_default_database()
-except Exception:
-    db = client["licensing_db"]
+# Determine target database name
+target_db_name = os.getenv("DB_NAME") or os.getenv("MONGO_DB")
+
+if target_db_name:
+    db = client[target_db_name]
+else:
+    try:
+        db = client.get_default_database()
+    except Exception:
+        # Check if cluster has an existing database containing 'apps' or 'licenses'
+        selected_db = "licensing_db"
+        try:
+            db_names = [d for d in client.list_database_names() if d not in ["admin", "local", "config"]]
+            for name in db_names:
+                cols = client[name].list_collection_names()
+                if "apps" in cols or "licenses" in cols or "users" in cols:
+                    selected_db = name
+                    break
+        except Exception:
+            pass
+        db = client[selected_db]
+
+print(f"[DB] Successfully connected to database: '{db.name}'")
 
 apps_collection = db["apps"]
 users_collection = db["users"]

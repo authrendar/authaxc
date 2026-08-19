@@ -29,9 +29,13 @@
             </div>
             
             <!-- Auth Switcher -->
-            <div style="display: flex; background: var(--bg-primary); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 20px; border: 1px solid var(--border);">
-                <button type="button" id="tab-btn-login" class="btn btn-sm active" style="flex: 1; border-radius: 4px; font-weight: 600;">Sign In</button>
-                <button type="button" id="tab-btn-register" class="btn btn-sm btn-secondary" style="flex: 1; border-radius: 4px; font-weight: 600; border: none;">Sign Up</button>
+            <div class="auth-tabs">
+                <button type="button" id="tab-btn-login" class="auth-tab-btn active">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                </button>
+                <button type="button" id="tab-btn-register" class="auth-tab-btn">
+                    <i class="fa-solid fa-user-plus"></i> Sign Up
+                </button>
             </div>
 
             <!-- Sign In Form -->

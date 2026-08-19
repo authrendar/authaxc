@@ -276,23 +276,23 @@ def create_app(data: models.AppCreate, username: str = Depends(get_current_admin
 
 @app.get("/api/admin/apps")
 def list_apps(username: str = Depends(get_current_admin)):
-    apps = list(db.apps_collection.find({"owner_username": username}, {"_id": 0}))
+    apps = list(db.apps_collection.find({}, {"_id": 0}))
     return apps
 
 @app.put("/api/admin/apps/{app_id}")
 def rename_app(app_id: str, data: models.AppRename, username: str = Depends(get_current_admin)):
-    app = db.apps_collection.find_one({"id": app_id, "owner_username": username})
+    app = db.apps_collection.find_one({"id": app_id})
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found or access denied")
+        raise HTTPException(status_code=404, detail="Application not found")
     db.apps_collection.update_one({"id": app_id}, {"$set": {"name": data.name}})
-    log_event(app_id, "App Rename", f"Renamed application from '{app['name']}' to '{data.name}'")
+    log_event(app_id, "App Rename", f"Renamed application from '{app.get('name', '')}' to '{data.name}'")
     return {"status": "success", "message": "Application renamed successfully"}
 
 @app.delete("/api/admin/apps/{app_id}")
 def delete_app(app_id: str, username: str = Depends(get_current_admin)):
-    app = db.apps_collection.find_one({"id": app_id, "owner_username": username})
+    app = db.apps_collection.find_one({"id": app_id})
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found or access denied")
+        raise HTTPException(status_code=404, detail="Application not found")
     db.apps_collection.delete_one({"id": app_id})
     db.users_collection.delete_many({"app_id": app_id})
     db.licenses_collection.delete_many({"app_id": app_id})
