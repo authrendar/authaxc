@@ -310,8 +310,8 @@ async function showDashboard() {
     const savedAdmin = localStorage.getItem('admin_user') || 'Admin';
     adminDisplayName.textContent = savedAdmin;
     
-    switchTab('overview');
     await fetchApps();
+    switchTab('overview');
 }
 
 // Switch tabs logic
@@ -415,9 +415,18 @@ function renderAppSelector() {
         if (activeAppTitle) activeAppTitle.textContent = '---';
         if (activeAppNames) activeAppNames.forEach(el => el.textContent = '---');
         
-        if (settingsAppName) settingsAppName.textContent = '---';
-        if (settingsAppId) settingsAppId.textContent = '---';
-        if (settingsAppSecret) settingsAppSecret.textContent = '---';
+        if (settingsAppName) {
+            settingsAppName.value = '';
+            settingsAppName.textContent = '---';
+        }
+        if (settingsAppId) {
+            settingsAppId.value = '';
+            settingsAppId.textContent = '---';
+        }
+        if (settingsAppSecret) {
+            settingsAppSecret.value = '';
+            settingsAppSecret.textContent = '---';
+        }
         window.rawClientSecret = '';
         
         if(statTotalApps) statTotalApps.textContent = '0';
@@ -579,8 +588,14 @@ function updateActiveAppDisplay() {
     if (activeAppNames) activeAppNames.forEach(el => el.textContent = activeApp.name);
     
     // Update settings credentials
-    if (settingsAppName) settingsAppName.textContent = activeApp.name;
-    if (settingsAppId) settingsAppId.textContent = activeApp.id;
+    if (settingsAppName) {
+        settingsAppName.value = activeApp.name;
+        settingsAppName.textContent = activeApp.name;
+    }
+    if (settingsAppId) {
+        settingsAppId.value = activeApp.id;
+        settingsAppId.textContent = activeApp.id;
+    }
     document.querySelectorAll('.active-app-id-text').forEach(el => el.textContent = activeApp.id);
     document.querySelectorAll('.api-domain-text').forEach(el => el.textContent = window.location.origin);
     window.rawClientSecret = activeApp.secret;
@@ -593,18 +608,31 @@ function updateActiveAppDisplay() {
     
     // Mask the secret by default
     if (settingsAppSecret) {
+        settingsAppSecret.value = activeApp.secret;
         settingsAppSecret.textContent = activeApp.secret;
-        settingsAppSecret.style.webkitTextSecurity = 'disc';
+        settingsAppSecret.type = 'password';
+    }
+
+    if (btnToggleSecret && settingsAppSecret) {
+        btnToggleSecret.onclick = () => {
+            if (settingsAppSecret.type === 'password') {
+                settingsAppSecret.type = 'text';
+                btnToggleSecret.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+            } else {
+                settingsAppSecret.type = 'password';
+                btnToggleSecret.innerHTML = '<i class="fa-solid fa-eye"></i>';
+            }
+        };
     }
     
     window.copyToClipboard = function(elementId, isSecret = false) {
         const el = document.getElementById(elementId);
         if(el) {
-            let text = el.textContent;
+            let text = (el.value !== undefined && el.value !== '') ? el.value : el.textContent;
             if(isSecret && window.rawClientSecret) {
                 text = window.rawClientSecret;
             }
-            navigator.clipboard.writeText(text);
+            navigator.clipboard.writeText(text || '');
             showToast('Copied to clipboard!');
         }
     };
@@ -2943,12 +2971,21 @@ if (sidebarOverlay) {
 }
 
 navItems.forEach(item => {
-    item.addEventListener('click', () => {
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tabId = item.getAttribute('data-tab');
+        if (tabId) {
+            switchTab(tabId);
+            if (activeAppId) {
+                updateActiveAppDisplay();
+            }
+        }
         if (window.innerWidth <= 1024) {
             toggleMobileSidebar(false);
         }
     });
 });
+window.switchTab = switchTab;
 
 // ==========================================
 // NOTIFICATION BELL & DROPDOWN TOGGLE
