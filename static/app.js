@@ -339,8 +339,39 @@ function switchTab(tabId) {
         setTimeout(renderAnalyticsChart, 50);
     } else if (tabId === 'settings') {
         fetch2FAStatus();
+        fetchDbStatus();
     }
 }
+
+async function fetchDbStatus() {
+    try {
+        const res = await fetch('/api/admin/system/db_status');
+        if (res.ok) {
+            const data = await res.json();
+            const activeDbEl = document.getElementById('diag-active-db');
+            const listEl = document.getElementById('diag-cluster-dbs');
+            if (activeDbEl) activeDbEl.textContent = data.current_database || 'N/A';
+            if (listEl && data.cluster_databases) {
+                listEl.innerHTML = data.cluster_databases.map(d => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                        <div>
+                            <span class="font-mono font-bold" style="color: ${d.is_current ? 'var(--accent)' : 'var(--text-primary)'};">${d.name}</span>
+                            ${d.is_current ? '<span class="badge badge-active" style="margin-left: 8px;">CONNECTED</span>' : ''}
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-muted); display: flex; gap: 14px;">
+                            <span>Apps: <strong style="color:var(--text-primary);">${d.apps_count}</strong></span>
+                            <span>Licenses: <strong style="color:var(--text-primary);">${d.licenses_count}</strong></span>
+                            <span>Users: <strong style="color:var(--text-primary);">${d.users_count}</strong></span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch(e) {
+        console.error('Failed to fetch DB status:', e);
+    }
+}
+window.fetchDbStatus = fetchDbStatus;
 
 // Global Escape Key Listener for Modals & Mobile Drawer
 document.addEventListener('keydown', (e) => {
@@ -391,6 +422,17 @@ function renderAppSelector() {
         
         if(statTotalApps) statTotalApps.textContent = '0';
         if(statActiveApps) statActiveApps.textContent = '0';
+        
+        if(listContainer) {
+            listContainer.innerHTML = `
+                <div style="padding: 24px; text-align: center; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: var(--radius-sm);">
+                    <i class="fa-solid fa-cube text-cyan" style="font-size: 1.8rem; margin-bottom: 8px; display: block;"></i>
+                    <span style="font-weight: 600; display: block; margin-bottom: 4px;">No Applications Found</span>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Create your first application to start generating license keys.</p>
+                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('btn-create-app-modal')?.click()"><i class="fa-solid fa-plus"></i> Create Application</button>
+                </div>
+            `;
+        }
         
         licensesList = [];
         usersList = [];

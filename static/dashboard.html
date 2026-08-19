@@ -938,18 +938,20 @@
                             </div>
                         </div>
 
-                        <!-- Danger Zone -->
-                        <div class="card">
+                        <!-- Database Diagnostics -->
+                        <div class="card" style="grid-column: 1 / -1;">
                             <div class="card-header">
-                                <span class="card-title text-rose"><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</span>
+                                <span class="card-title"><i class="fa-solid fa-database text-cyan"></i> MongoDB Connection Diagnostics</span>
+                                <button class="btn btn-secondary btn-sm" onclick="fetchDbStatus()"><i class="fa-solid fa-arrows-rotate"></i> Check Databases</button>
                             </div>
                             <div class="card-body">
-                                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px;">
-                                    Permanently delete the current application and all its users, keys, and session records.
-                                </p>
-                                <button id="btn-delete-app" class="btn btn-red">
-                                    <i class="fa-solid fa-trash-can"></i> Delete Application
-                                </button>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                                    <span style="font-size: 0.85rem; color: var(--text-muted);">Active Database:</span>
+                                    <span id="diag-active-db" class="font-mono font-bold text-cyan" style="font-size: 0.95rem;">---</span>
+                                </div>
+                                <div id="diag-cluster-dbs" style="display: flex; flex-direction: column; gap: 8px;">
+                                    <!-- Injected dynamically -->
+                                </div>
                             </div>
                         </div>
 

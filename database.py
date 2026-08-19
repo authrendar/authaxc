@@ -31,17 +31,29 @@ else:
     try:
         db = client.get_default_database()
     except Exception:
-        # Check if cluster has an existing database containing 'apps' or 'licenses'
         selected_db = "licensing_db"
         try:
             db_names = [d for d in client.list_database_names() if d not in ["admin", "local", "config"]]
+            # Prioritize database that actually contains apps or licenses documents
+            found = False
             for name in db_names:
-                cols = client[name].list_collection_names()
-                if "apps" in cols or "licenses" in cols or "users" in cols:
+                c_db = client[name]
+                cols = c_db.list_collection_names()
+                if "apps" in cols and c_db["apps"].count_documents({}) > 0:
                     selected_db = name
+                    found = True
                     break
-        except Exception:
-            pass
+                elif "licenses" in cols and c_db["licenses"].count_documents({}) > 0:
+                    selected_db = name
+                    found = True
+                    break
+            if not found:
+                for name in db_names:
+                    if name != "licensing_db":
+                        selected_db = name
+                        break
+        except Exception as e:
+            print(f"[DB SCAN ERROR] {e}")
         db = client[selected_db]
 
 print(f"[DB] Successfully connected to database: '{db.name}'")

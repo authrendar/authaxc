@@ -257,6 +257,34 @@ def delete_platform_user(target_username: str, username: str = Depends(get_curre
     db.users_collection.delete_one({"username": target_username, "role": "admin"})
     return {"status": "success", "message": f"Admin '{target_username}' deleted"}
 
+# --- SYSTEM DB DIAGNOSTICS ---
+@app.get("/api/admin/system/db_status")
+def get_db_status(username: str = Depends(get_current_admin)):
+    cluster_databases = []
+    try:
+        db_names = [d for d in db.client.list_database_names() if d not in ["admin", "local", "config"]]
+        for name in db_names:
+            c_db = db.client[name]
+            cols = c_db.list_collection_names()
+            apps_count = c_db["apps"].count_documents({}) if "apps" in cols else 0
+            lic_count = c_db["licenses"].count_documents({}) if "licenses" in cols else 0
+            users_count = c_db["users"].count_documents({}) if "users" in cols else 0
+            cluster_databases.append({
+                "name": name,
+                "is_current": name == db.db.name,
+                "apps_count": apps_count,
+                "licenses_count": lic_count,
+                "users_count": users_count
+            })
+    except Exception as e:
+        cluster_databases = [{"error": str(e)}]
+        
+    return {
+        "status": "success",
+        "current_database": db.db.name,
+        "cluster_databases": cluster_databases
+    }
+
 # --- ADMIN APP MANAGEMENT ---
 @app.post("/api/admin/apps")
 def create_app(data: models.AppCreate, username: str = Depends(get_current_admin)):
